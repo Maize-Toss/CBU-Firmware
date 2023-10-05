@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -31,6 +32,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+#define RFID_READ_PERIOD_MS 20
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -39,8 +43,42 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for readRFIDTask */
+osThreadId_t readRFIDTaskHandle;
+const osThreadAttr_t readRFIDTask_attributes = {
+  .name = "readRFIDTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal1,
+};
+/* Definitions for BluetoothRXTask */
+osThreadId_t BluetoothRXTaskHandle;
+const osThreadAttr_t BluetoothRXTask_attributes = {
+  .name = "BluetoothRXTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal2,
+};
+/* Definitions for readBatteryVolt */
+osThreadId_t readBatteryVoltHandle;
+const osThreadAttr_t readBatteryVolt_attributes = {
+  .name = "readBatteryVolt",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for BluetoothRX */
+osSemaphoreId_t BluetoothRXHandle;
+const osSemaphoreAttr_t BluetoothRX_attributes = {
+  .name = "BluetoothRX"
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -49,7 +87,15 @@ UART_HandleTypeDef huart2;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_USART1_UART_Init(void);
+void StartDefaultTask(void *argument);
+void StartRFIDTask(void *argument);
+void StartBluetoothTask(void *argument);
+void StartBatteryTask(void *argument);
+
 /* USER CODE BEGIN PFP */
+
+void calculateRawScores(uint8_t* BagStatus, uint8_t* teamRawScore);
 
 /* USER CODE END PFP */
 
@@ -87,10 +133,59 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* Create the semaphores(s) */
+  /* creation of BluetoothRX */
+  BluetoothRXHandle = osSemaphoreNew(1, 1, &BluetoothRX_attributes);
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of readRFIDTask */
+  readRFIDTaskHandle = osThreadNew(StartRFIDTask, NULL, &readRFIDTask_attributes);
+
+  /* creation of BluetoothRXTask */
+  BluetoothRXTaskHandle = osThreadNew(StartBluetoothTask, NULL, &BluetoothRXTask_attributes);
+
+  /* creation of readBatteryVolt */
+  readBatteryVoltHandle = osThreadNew(StartBatteryTask, NULL, &readBatteryVolt_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -149,6 +244,41 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 38400;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
 }
 
 /**
@@ -237,7 +367,127 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void calculateRawScore(uint8_t* BagStatus, uint8_t* teamRawScore) {
+
+	*teamRawScore = 0;
+
+	// Team 0 routine
+	for (int i = 0; i < 4; ++i) {
+		*teamRawScore += BagStatus[i];
+	}
+
+}
+
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartRFIDTask */
+/**
+* @brief Function implementing the RFIDTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartRFIDTask */
+void StartRFIDTask(void *argument)
+{
+  /* USER CODE BEGIN StartRFIDTask */
+
+	TickType_t xLastWakeTime;
+	const TickType_t period = pdMS_TO_TICKS(RFID_READ_PERIOD_MS);
+
+	xLastWakeTime = xTaskGetTickCount();
+
+	uint8_t BagStatus[8];
+
+	uint8_t team0RawScore = 0;
+	uint8_t team1RawScore = 0;
+
+	uint8_t prevTeam0Score = 0;
+	uint8_t prevTeam1Score = 0;
+
+  /* Infinite loop */
+	for(;;)
+	{
+		// Read antenna array
+
+		calculateRawScore(BagStatus, &team0RawScore);
+		calculateRawScore((BagStatus + 4), &team1RawScore); // move BagStatus pointer to the Team 1 section
+
+		if (team0RawScore != prevTeam0Score) {
+			// Send current Team 0 score
+		}
+		if (team1RawScore != prevTeam1Score) {
+			// Send current Team 1 score
+		}
+
+		prevTeam0Score = team0RawScore;
+		prevTeam1Score = team1RawScore;
+
+		vTaskDelayUntil( &xLastWakeTime, period );
+	}
+  /* USER CODE END StartRFIDTask */
+}
+
+/* USER CODE BEGIN Header_StartBluetoothTask */
+/**
+* @brief Function implementing the BluetoothTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartBluetoothTask */
+void StartBluetoothTask(void *argument)
+{
+  /* USER CODE BEGIN StartBluetoothTask */
+
+	// TODO
+
+  /* Infinite loop */
+  for(;;)
+  {
+	  // TODO
+    osDelay(1);
+  }
+  /* USER CODE END StartBluetoothTask */
+}
+
+/* USER CODE BEGIN Header_StartBatteryTask */
+/**
+* @brief Function implementing the readBatteryVolt thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartBatteryTask */
+void StartBatteryTask(void *argument)
+{
+  /* USER CODE BEGIN StartBatteryTask */
+
+	// TODO
+
+  /* Infinite loop */
+  for(;;)
+  {
+	  // TODO
+    osDelay(1);
+  }
+  /* USER CODE END StartBatteryTask */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
