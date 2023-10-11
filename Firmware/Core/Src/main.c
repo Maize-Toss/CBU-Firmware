@@ -34,6 +34,8 @@
 /* USER CODE BEGIN PD */
 
 #define RFID_READ_PERIOD_MS 20
+#define BAT_READ_PERIOD_MS 5000
+#define VBAT_CONVERSION_FACTOR (float) 3 * 3.3 / 4096 // VBat/3 = rawADC_IN18 * VREF / 2^12
 
 /* USER CODE END PD */
 
@@ -43,6 +45,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
@@ -86,8 +91,10 @@ const osSemaphoreAttr_t BluetoothRX_attributes = {
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_ADC1_Init(void);
 void StartDefaultTask(void *argument);
 void StartRFIDTask(void *argument);
 void StartBluetoothTask(void *argument);
@@ -132,8 +139,10 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -247,6 +256,65 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Common config
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV256;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.LowPowerAutoWait = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc1.Init.OversamplingMode = DISABLE;
+  hadc1.Init.DFSDMConfig = ADC_DFSDM_MODE_ENABLE;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_VBAT;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -313,6 +381,22 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 
 }
 
@@ -409,39 +493,40 @@ void StartRFIDTask(void *argument)
 {
   /* USER CODE BEGIN StartRFIDTask */
 
-	TickType_t xLastWakeTime;
-	const TickType_t period = pdMS_TO_TICKS(RFID_READ_PERIOD_MS);
-
-	xLastWakeTime = xTaskGetTickCount();
-
-	uint8_t BagStatus[8];
-
-	uint8_t team0RawScore = 0;
-	uint8_t team1RawScore = 0;
-
-	uint8_t prevTeam0Score = 0;
-	uint8_t prevTeam1Score = 0;
-
-  /* Infinite loop */
+//	TickType_t xLastWakeTime;
+//	const TickType_t period = pdMS_TO_TICKS(RFID_READ_PERIOD_MS);
+//
+//	xLastWakeTime = xTaskGetTickCount();
+//
+//	uint8_t BagStatus[8];
+//
+//	uint8_t team0RawScore = 0;
+//	uint8_t team1RawScore = 0;
+//
+//	uint8_t prevTeam0Score = 0;
+//	uint8_t prevTeam1Score = 0;
+//
+//  /* Infinite loop */
 	for(;;)
-	{
-		// Read antenna array
-
-		calculateRawScore(BagStatus, &team0RawScore);
-		calculateRawScore((BagStatus + 4), &team1RawScore); // move BagStatus pointer to the Team 1 section
-
-		if (team0RawScore != prevTeam0Score) {
-			// Send current Team 0 score
-		}
-		if (team1RawScore != prevTeam1Score) {
-			// Send current Team 1 score
-		}
-
-		prevTeam0Score = team0RawScore;
-		prevTeam1Score = team1RawScore;
-
-		vTaskDelayUntil( &xLastWakeTime, period );
-	}
+		osDelay(20);
+//	{
+//		// Read antenna array
+//
+//		calculateRawScore(BagStatus, &team0RawScore);
+//		calculateRawScore((BagStatus + 4), &team1RawScore); // move BagStatus pointer to the Team 1 section
+//
+//		if (team0RawScore != prevTeam0Score) {
+//			// Send current Team 0 score
+//		}
+//		if (team1RawScore != prevTeam1Score) {
+//			// Send current Team 1 score
+//		}
+//
+//		prevTeam0Score = team0RawScore;
+//		prevTeam1Score = team1RawScore;
+//
+//		vTaskDelayUntil( &xLastWakeTime, period );
+//	}
   /* USER CODE END StartRFIDTask */
 }
 
@@ -478,13 +563,28 @@ void StartBatteryTask(void *argument)
 {
   /* USER CODE BEGIN StartBatteryTask */
 
-	// TODO
+	TickType_t xLastWakeTime;
+	const TickType_t period = pdMS_TO_TICKS(BAT_READ_PERIOD_MS);
+
+	xLastWakeTime = xTaskGetTickCount();
+
+	uint32_t rawVBat = 0;
+	float VBat = 0.0;
+
+	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&rawVBat, 1);
 
   /* Infinite loop */
   for(;;)
   {
-	  // TODO
-    osDelay(1);
+
+	  VBat = rawVBat * VBAT_CONVERSION_FACTOR;
+
+	  // Send VBat data
+
+	  vTaskDelayUntil( &xLastWakeTime, period );
+
   }
   /* USER CODE END StartBatteryTask */
 }
