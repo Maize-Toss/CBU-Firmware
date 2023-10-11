@@ -22,7 +22,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "bluetooth.h"
+#include "reader.h"
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -101,8 +103,6 @@ void StartBluetoothTask(void *argument);
 void StartBatteryTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-
-void calculateRawScores(uint8_t* BagStatus, uint8_t* teamRawScore);
 
 /* USER CODE END PFP */
 
@@ -451,17 +451,6 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void calculateRawScore(uint8_t* BagStatus, uint8_t* teamRawScore) {
-
-	*teamRawScore = 0;
-
-	// Team 0 routine
-	for (int i = 0; i < 4; ++i) {
-		*teamRawScore += BagStatus[i];
-	}
-
-}
-
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -493,40 +482,38 @@ void StartRFIDTask(void *argument)
 {
   /* USER CODE BEGIN StartRFIDTask */
 
-//	TickType_t xLastWakeTime;
-//	const TickType_t period = pdMS_TO_TICKS(RFID_READ_PERIOD_MS);
-//
-//	xLastWakeTime = xTaskGetTickCount();
-//
-//	uint8_t BagStatus[8];
-//
-//	uint8_t team0RawScore = 0;
-//	uint8_t team1RawScore = 0;
-//
-//	uint8_t prevTeam0Score = 0;
-//	uint8_t prevTeam1Score = 0;
-//
-//  /* Infinite loop */
+	TickType_t xLastWakeTime;
+	const TickType_t period = pdMS_TO_TICKS(RFID_READ_PERIOD_MS);
+
+	xLastWakeTime = xTaskGetTickCount();
+
+	uint8_t team0RawScore = 0;
+	uint8_t team1RawScore = 0;
+
+	uint8_t prevTeam0Score = 0;
+	uint8_t prevTeam1Score = 0;
+
+  /* Infinite loop */
 	for(;;)
-		osDelay(20);
-//	{
-//		// Read antenna array
-//
-//		calculateRawScore(BagStatus, &team0RawScore);
-//		calculateRawScore((BagStatus + 4), &team1RawScore); // move BagStatus pointer to the Team 1 section
-//
-//		if (team0RawScore != prevTeam0Score) {
-//			// Send current Team 0 score
-//		}
-//		if (team1RawScore != prevTeam1Score) {
-//			// Send current Team 1 score
-//		}
-//
-//		prevTeam0Score = team0RawScore;
-//		prevTeam1Score = team1RawScore;
-//
-//		vTaskDelayUntil( &xLastWakeTime, period );
-//	}
+		// osDelay(20); // temp for commenting out the rest of the task
+	{
+		// Read antenna array
+
+		calculateRawScore(&team0RawScore, false);
+		calculateRawScore(&team1RawScore, true); // true to move BagStatus pointer to the Team 1 section
+
+		if (team0RawScore != prevTeam0Score) {
+			// Send current Team 0 score
+		}
+		if (team1RawScore != prevTeam1Score) {
+			// Send current Team 1 score
+		}
+
+		prevTeam0Score = team0RawScore;
+		prevTeam1Score = team1RawScore;
+
+		vTaskDelayUntil( &xLastWakeTime, period );
+	}
   /* USER CODE END StartRFIDTask */
 }
 
