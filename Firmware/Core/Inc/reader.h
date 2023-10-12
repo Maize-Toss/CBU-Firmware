@@ -30,7 +30,7 @@ typedef struct BeanBag_interface {
 BeanBag_interface BagInfo[8];
 
 // global variable for tracking the status of each bag
-uint8_t BagStatus[8];
+uint8_t BagStatus[8] = {0,0,0,0,0,0,0,0};
 
 // used to set up struct and initialize colors, tag IDs, etc
 // modifies beanbag_interface
@@ -52,5 +52,7 @@ int RFID_init(RFID_interface *pInterface);
 // returns number of IDs read
 int RFID_read(const RFID_interface *pInterface, int *buf, int timeout_ms, bool blocking);
 
+// reads all RFID antenna regions and updates the global BagStatus array
+void RFID_readArray(void);
 
 #endif /* INC_READER_H_ */

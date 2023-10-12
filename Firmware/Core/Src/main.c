@@ -35,9 +35,19 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define RFID_READ_PERIOD_MS 20
-#define BAT_READ_PERIOD_MS 5000
+#define RFID_READ_PERIOD_MS 3000
+#define BAT_READ_PERIOD_MS 30000
 #define VBAT_CONVERSION_FACTOR (float) 3 * 3.3 / 4096 // VBat/3 = rawADC_IN18 * VREF / 2^12
+
+#define RX_BUF_SIZE 64
+
+#define BLE_CS_PORT GPIOA
+#define BLE_CS_PIN 0
+
+#define ADDR_PORT GPIOA
+#define ADDR_PIN 1
+
+#define SDU_NAME "SDU"
 
 /* USER CODE END PD */
 
@@ -81,12 +91,21 @@ const osThreadAttr_t readBatteryVolt_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* Definitions for BluetoothTX */
+osMutexId_t BluetoothTXHandle;
+const osMutexAttr_t BluetoothTX_attributes = {
+  .name = "BluetoothTX"
+};
 /* Definitions for BluetoothRX */
 osSemaphoreId_t BluetoothRXHandle;
 const osSemaphoreAttr_t BluetoothRX_attributes = {
   .name = "BluetoothRX"
 };
 /* USER CODE BEGIN PV */
+
+char CBU_ID[4] = "CBUx";
+
+BLE_interface ble;
 
 /* USER CODE END PV */
 
@@ -149,6 +168,9 @@ int main(void)
 
   /* Init scheduler */
   osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of BluetoothTX */
+  BluetoothTXHandle = osMutexNew(&BluetoothTX_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -189,6 +211,27 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
+
+  	  if (HAL_GPIO_ReadPin(ADDR_PORT, ADDR_PIN) == GPIO_PIN_SET) {
+  		  CBU_ID[3] = '1';
+  	  } else {
+  		  CBU_ID[3] = '0';
+  	  }
+
+  	  ble.huart = &huart2;
+  	  ble.cs_base = BLE_CS_PORT;
+  	  ble.cs_pin = BLE_CS_PIN;
+  	  ble.name = CBU_ID;
+  	  ble.mutex = &BluetoothTXHandle;
+
+  	  initBLE(&ble);
+
+#ifndef DEBUG
+  	  while (!connect(SDU_NAME, &ble)); // try to reconnect in Release mode
+#else
+  	connect(SDU_NAME, &ble); // only try to connect once in Debug mode
+#endif
+
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -490,27 +533,20 @@ void StartRFIDTask(void *argument)
 	uint8_t team0RawScore = 0;
 	uint8_t team1RawScore = 0;
 
-	uint8_t prevTeam0Score = 0;
-	uint8_t prevTeam1Score = 0;
+	uint8_t tx_buf[2];
 
   /* Infinite loop */
 	for(;;)
-		// osDelay(20); // temp for commenting out the rest of the task
+		// osDelay(RFID_READ_PERIOD_MS); // temp for commenting out the rest of the task
 	{
-		// Read antenna array
+		RFID_readArray();
 
 		calculateRawScore(&team0RawScore, false);
 		calculateRawScore(&team1RawScore, true); // true to move BagStatus pointer to the Team 1 section
 
-		if (team0RawScore != prevTeam0Score) {
-			// Send current Team 0 score
-		}
-		if (team1RawScore != prevTeam1Score) {
-			// Send current Team 1 score
-		}
-
-		prevTeam0Score = team0RawScore;
-		prevTeam1Score = team1RawScore;
+		tx_buf[0] = team0RawScore;
+		tx_buf[1] = team1RawScore;
+		broadcast(tx_buf, (uint32_t) 2, &ble);
 
 		vTaskDelayUntil( &xLastWakeTime, period );
 	}
@@ -528,13 +564,15 @@ void StartBluetoothTask(void *argument)
 {
   /* USER CODE BEGIN StartBluetoothTask */
 
-	// TODO
+	uint8_t rx_buf[RX_BUF_SIZE];
+	uint32_t size = 0;
 
   /* Infinite loop */
   for(;;)
   {
-	  // TODO
-    osDelay(1);
+	  osSemaphoreWait(BluetoothRXHandle, 0);
+
+	  readBLE(rx_buf, &size, &ble);
   }
   /* USER CODE END StartBluetoothTask */
 }
@@ -557,18 +595,26 @@ void StartBatteryTask(void *argument)
 
 	uint32_t rawVBat = 0;
 	float VBat = 0.0;
+	uint32_t VBat_conv = 0;
 
 	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&rawVBat, 1);
+
+	uint32_t tx_buf[4];
 
   /* Infinite loop */
   for(;;)
   {
 
 	  VBat = rawVBat * VBAT_CONVERSION_FACTOR;
+	  VBat_conv = *((uint32_t*)&VBat);
+	  tx_buf[0] = VBat_conv & 0xFF000000;
+	  tx_buf[1] = VBat_conv & 0x00FF0000;
+	  tx_buf[2] = VBat_conv & 0x0000FF00;
+	  tx_buf[3] = VBat_conv & 0x000000FF;
 
-	  // Send VBat data
+	  broadcast(tx_buf, (uint32_t) 4, &ble);
 
 	  vTaskDelayUntil( &xLastWakeTime, period );
 
