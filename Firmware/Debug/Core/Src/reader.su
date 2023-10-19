@@ -1,0 +1,2 @@
+../Core/Src/reader.c:15:6:calculateRawScore	24	static
+../Core/Src/reader.c:31:6:RFID_readArray	4	static

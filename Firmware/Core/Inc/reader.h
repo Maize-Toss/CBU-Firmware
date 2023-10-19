@@ -9,10 +9,12 @@
 #define INC_READER_H_
 
 #include <stdbool.h>
+#include <stdint.h>
+#include "stm32l4xx_hal.h"
 
-#define ARR_SIZE;
+#define ARR_SIZE 8
 
-void calculateRawScores(uint8_t* teamRawScore, bool isTeam1);
+void calculateRawScore(uint8_t* teamRawScore, bool isTeam1);
 
 typedef struct RFID_interface
 {
@@ -27,10 +29,10 @@ typedef struct BeanBag_interface {
 } BeanBag_interface;
 
 // global variable for RFID tag info to be tracked
-BeanBag_interface BagInfo[8];
+extern BeanBag_interface BagInfo[8];
 
 // global variable for tracking the status of each bag
-uint8_t BagStatus[8] = {0,0,0,0,0,0,0,0};
+extern uint8_t BagStatus[8];
 
 // used to set up struct and initialize colors, tag IDs, etc
 // modifies beanbag_interface

@@ -10,6 +10,8 @@
 
 #include "stm32l4xx_hal.h"
 #include <stdint.h>
+#include <stdbool.h>
+#include "cmsis_os.h"
 
 #define SLEEP_MODE "AT+SLEEP"
 #define AT "AT"
@@ -65,11 +67,11 @@ uint32_t connect(char* target, BLE_interface* ble);
 uint32_t disconnect(char* target, BLE_interface* ble);
 
 // poll for events
-Void readBLE(uint32_t timeout, BLE_interface* ble, uint8_t* rx_buff);
+void readBLE(uint8_t* rx_buff, uint32_t* size, BLE_interface* ble);
 
 // broadcast payload to other ble modules
 // return status
-uint32_t broadcast(uint32_t* tx_buffer, uint32_t size, BLE_interface* ble);
+uint32_t broadcast(uint8_t* tx_buffer, uint32_t size, BLE_interface* ble);
 
 
 #endif /* INC_BLUETOOTH_H_ */
