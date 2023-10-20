@@ -12,17 +12,17 @@
 #include "cJSON.h"
 
 // Define a struct to hold the deserialized values for each team
-struct TeamInfo {
-    int score;
-    int state;
-};
+typedef struct TeamInfo {
+    int score = 0;
+    int state = 0;
+}GameInfo;
 
 // Define a struct to hold the deserialized values
-struct GameInfo {
-    struct TeamInfo team1;
-    struct TeamInfo team2;
-    int end_of_round;
-};
+typedef struct GameInfo {
+    struct TeamInfo team1 = {0,0};
+    struct TeamInfo team2 = {0,0};
+    int end_of_round = 0;
+}GameInfo;
 
 /**
  * @brief Deserialize JSON data and fill a struct with game information.

@@ -43,7 +43,7 @@ typedef struct BLE_interface
 
 
 // poll for events
-Void readBLE(uint32_t timeout, BLE_interface* ble, uint8_t* rx_buff);
+Void readyToRead(BLE_interface* ble, uint8_t* rx_buff);
 
 // broadcast payload to other ble modules
 // return status

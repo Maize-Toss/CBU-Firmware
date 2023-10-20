@@ -39,7 +39,7 @@
 #define BAT_READ_PERIOD_MS 30000
 #define VBAT_CONVERSION_FACTOR (float) 3 * 3.3 / 4096 // VBat/3 = rawADC_IN18 * VREF / 2^12
 
-#define RX_BUF_SIZE 64
+#define RX_BUF_SIZE 128
 
 #define BLE_CS_PORT GPIOA
 #define BLE_CS_PIN 0
@@ -93,11 +93,6 @@ const osThreadAttr_t readBatteryVolt_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
-/* Definitions for BluetoothTX */
-osMutexId_t BluetoothTXHandle;
-const osMutexAttr_t BluetoothTX_attributes = {
-  .name = "BluetoothTX"
-};
 /* Definitions for BluetoothRX */
 osSemaphoreId_t BluetoothRXHandle;
 const osSemaphoreAttr_t BluetoothRX_attributes = {
@@ -108,6 +103,10 @@ const osSemaphoreAttr_t BluetoothRX_attributes = {
 char CBU_ID[4] = "CBUx";
 
 BLE_interface ble;
+
+uint8_t rx_buffer[RX_BUF_SIZE] = {0};
+
+GameInfo gameInfo;
 
 /* USER CODE END PV */
 
@@ -172,9 +171,6 @@ int main(void)
 
   /* Init scheduler */
   osKernelInitialize();
-  /* Create the mutex(es) */
-  /* creation of BluetoothTX */
-  BluetoothTXHandle = osMutexNew(&BluetoothTX_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -503,7 +499,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SMPS_EN_Pin|SMPS_V1_Pin|SMPS_SW_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(SMPS_V1_GPIO_Port, SMPS_V1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
@@ -514,18 +510,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SMPS_EN_Pin SMPS_V1_Pin SMPS_SW_Pin */
-  GPIO_InitStruct.Pin = SMPS_EN_Pin|SMPS_V1_Pin|SMPS_SW_Pin;
+  /*Configure GPIO pin : SMPS_V1_Pin */
+  GPIO_InitStruct.Pin = SMPS_V1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : SMPS_PG_Pin */
-  GPIO_InitStruct.Pin = SMPS_PG_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(SMPS_PG_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(SMPS_V1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LD4_Pin */
   GPIO_InitStruct.Pin = LD4_Pin;
@@ -537,6 +527,11 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	readyToRead(&ble, rx_buffer);
+	osSemaphoreRelease(BluetoothRXHandle);
+}
 
 /* USER CODE END 4 */
 
@@ -611,12 +606,11 @@ void StartBluetoothTask(void *argument)
 	uint8_t rx_buf[RX_BUF_SIZE];
 	uint32_t size = 0;
 
-  /* Infinite loop */
+ /* Infinite loop */
   for(;;)
   {
 	  osSemaphoreAcquire(BluetoothRXHandle, osWaitForever);
-
-	  readBLE(rx_buf, &size, &ble);
+	  deserializeJSON((char*)rx_buff, gameInfo);
   }
   /* USER CODE END StartBluetoothTask */
 }
