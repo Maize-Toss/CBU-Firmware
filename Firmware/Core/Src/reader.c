@@ -41,8 +41,11 @@ void RFID_readArray(void) {
 	    HAL_GPIO_WritePin(SEL_PORT, sel[7], (row & 0b01) );
 
 		for(uint8_t column = 0; column < 4; column++){
+			// iterate through each element in the row
 			HAL_GPIO_WritePin(SEL_PORT, sel[row*2], (column >> 1) & 0b01);
 			HAL_GPIO_WritePin(SEL_PORT, sel[row*2 + 1], (column & 0b01) );
+
+			// Now read from selected antenna
 
 		}
 	}
