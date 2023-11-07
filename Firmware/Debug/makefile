@@ -64,8 +64,8 @@ all: main-build
 main-build: CBU-Firmware.elf secondary-outputs
 
 # Tool invocations
-CBU-Firmware.elf CBU-Firmware.map: $(OBJS) $(USER_OBJS) C:\Users\evanm\Documents\Michigan\eecs473\Project\CBU-Firmware\Firmware\STM32L452RETXP_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "CBU-Firmware.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\evanm\Documents\Michigan\eecs473\Project\CBU-Firmware\Firmware\STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="CBU-Firmware.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+CBU-Firmware.elf CBU-Firmware.map: $(OBJS) $(USER_OBJS) C:\Users\elham\Documents\Work\College\Senior\EECS473\EECS473_Project\maizeTossWorkspace\CBU-Firmware\Firmware\STM32L452RETXP_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "CBU-Firmware.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\elham\Documents\Work\College\Senior\EECS473\EECS473_Project\maizeTossWorkspace\CBU-Firmware\Firmware\STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="CBU-Firmware.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

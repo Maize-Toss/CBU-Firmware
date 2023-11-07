@@ -29,6 +29,11 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct BroadcastPacket {
+	uint32_t batteryVoltage = 0;
+	uint32_t Team0DeltaScore = 0;
+	uint32_t Team1DeltaScore = 0;
+} BroadcastPacket;
 
 /* USER CODE END PTD */
 
@@ -64,6 +69,8 @@ SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+
+BroadcastPacket broadcastPacket;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -106,7 +113,7 @@ BLE_interface ble;
 
 uint8_t rx_buffer[RX_BUF_SIZE] = {0};
 
-GameInfo gameInfo;
+//GameInfo gameInfo;
 
 /* USER CODE END PV */
 
@@ -218,7 +225,7 @@ int main(void)
   		  CBU_ID[3] = '0';
   	  }
 
-  	  ble.huart = &huart2;
+  	  ble.huart = &huart1;
   	  ble.cs_base = BLE_CS_PORT;
   	  ble.cs_pin = BLE_CS_PIN;
   	  ble.name = CBU_ID;
@@ -589,9 +596,11 @@ void StartRFIDTask(void *argument)
 		calculateRawScore(&team0RawScore, false);
 		calculateRawScore(&team1RawScore, true); // true to move BagStatus pointer to the Team 1 section
 
-		tx_buf[0] = team0RawScore;
-		tx_buf[1] = team1RawScore;
-		broadcast(tx_buf, (uint32_t) 2, &ble);
+		broadcastPacket.Team0DeltaScore = team0RawScore;
+		broadcastPacket.Team1DeltaScore = team1RawScore;
+
+
+//		broadcast(tx_buf, (uint32_t) 2, &ble);
 
 		vTaskDelayUntil( &xLastWakeTime, period );
 	}
@@ -658,7 +667,9 @@ void StartBatteryTask(void *argument)
 	  tx_buf[2] = VBat_conv & 0x0000FF00;
 	  tx_buf[3] = VBat_conv & 0x000000FF;
 
-	  broadcast(tx_buf, (uint32_t) 4, &ble);
+
+	  broadcastPacket.batteryVoltage = tx_buf;
+//	  broadcast(tx_buf, (uint32_t) 4, &ble);
 
 	  vTaskDelayUntil( &xLastWakeTime, period );
 
