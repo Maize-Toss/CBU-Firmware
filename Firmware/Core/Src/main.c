@@ -25,15 +25,11 @@
 #include "bluetooth.h"
 #include "reader.h"
 #include <stdbool.h>
+#include "MaizeJSON.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct BroadcastPacket {
-	uint32_t batteryVoltage = 0;
-	uint32_t Team0DeltaScore = 0;
-	uint32_t Team1DeltaScore = 0;
-} BroadcastPacket;
 
 /* USER CODE END PTD */
 
@@ -44,7 +40,8 @@ typedef struct BroadcastPacket {
 #define BAT_READ_PERIOD_MS 30000
 #define VBAT_CONVERSION_FACTOR (float) 3 * 3.3 / 4096 // VBat/3 = rawADC_IN18 * VREF / 2^12
 
-#define RX_BUF_SIZE 128
+#define RX_BUFF_SIZE 256			// TODO: change to appropriate size
+#define TX_BUFF_SIZE 256			// TODO: change to appropriate size
 
 #define BLE_CS_PORT GPIOA
 #define BLE_CS_PIN 0
@@ -69,8 +66,6 @@ SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
-
-BroadcastPacket broadcastPacket;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -106,14 +101,17 @@ const osSemaphoreAttr_t BluetoothRX_attributes = {
   .name = "BluetoothRX"
 };
 /* USER CODE BEGIN PV */
+BroadcastPacket broadcastPacket = {0,0,0};
+
 
 char CBU_ID[4] = "CBUx";
 
 BLE_interface ble;
 
-uint8_t rx_buffer[RX_BUF_SIZE] = {0};
+uint8_t rx_buffer[RX_BUFF_SIZE] = {0};
+uint8_t tx_buffer[TX_BUFF_SIZE] = {0};
 
-//GameInfo gameInfo;
+GameInfo gameInfo = {{0,0}, {0,0}, 0 };
 
 /* USER CODE END PV */
 
@@ -229,16 +227,25 @@ int main(void)
   	  ble.cs_base = BLE_CS_PORT;
   	  ble.cs_pin = BLE_CS_PIN;
   	  ble.name = CBU_ID;
-  	  ble.mutex = &BluetoothTXHandle;
+  	  ble.mutex = &BluetoothRXHandle;
 
-  	  initBLE(&ble);
+//  	  initBLE(&ble);
 
-#ifndef DEBUG
-  	  while (!connect(SDU_NAME, &ble)); // try to reconnect in Release mode
-#else
-  	connect(SDU_NAME, &ble); // only try to connect once in Debug mode
-#endif
+//#ifndef DEBUG
+//  	  while (!connect(SDU_NAME, &ble)); // try to reconnect in Release mode
+//#else
+//  	connect(SDU_NAME, &ble); // only try to connect once in Debug mode
+//#endif
 
+
+//  for(;;){
+//	  for(volatile int i = 0; i  <40000; i++)
+//	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 1);
+//	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, 1);
+//	  for(volatile int i = 0; i  <40000; i++)
+//	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 0);
+//	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, 0);
+//  }
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -506,7 +513,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SMPS_V1_GPIO_Port, SMPS_V1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|LD4_Pin
@@ -519,12 +526,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : SMPS_V1_Pin */
-  GPIO_InitStruct.Pin = SMPS_V1_Pin;
+  /*Configure GPIO pin : PA4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SMPS_V1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB0 PB1 PB2 LD4_Pin
                            PB3 PB4 PB5 PB6
@@ -596,8 +603,8 @@ void StartRFIDTask(void *argument)
 		calculateRawScore(&team0RawScore, false);
 		calculateRawScore(&team1RawScore, true); // true to move BagStatus pointer to the Team 1 section
 
-		broadcastPacket.Team0DeltaScore = team0RawScore;
-		broadcastPacket.Team1DeltaScore = team1RawScore;
+		broadcastPacket.team0DeltaScore = team0RawScore;
+		broadcastPacket.team1DeltaScore = team1RawScore;
 
 
 //		broadcast(tx_buf, (uint32_t) 2, &ble);
@@ -618,14 +625,20 @@ void StartBluetoothTask(void *argument)
 {
   /* USER CODE BEGIN StartBluetoothTask */
 
-	uint8_t rx_buf[RX_BUF_SIZE];
+	uint8_t rx_buff[RX_BUFF_SIZE];
 	uint32_t size = 0;
 
  /* Infinite loop */
   for(;;)
   {
 	  osSemaphoreAcquire(BluetoothRXHandle, osWaitForever);
-	  deserializeJSON((char*)rx_buff, gameInfo);
+	  deserializeJSON((char*)rx_buff, &gameInfo);
+	  if (gameInfo.end_of_round){ //TODO: verify we only want to send at end of round
+		  // Alternatively, we could have an extra element in the JSON like a boolean so whenever it isnt set, we know only to care about the battery voltage
+		  for(uint32_t i = 0; i < 300; i++){
+			  serializeJSON(&broadcastPacket,tx_buffer);
+		  }
+	  }
   }
   /* USER CODE END StartBluetoothTask */
 }
@@ -666,7 +679,6 @@ void StartBatteryTask(void *argument)
 	  tx_buf[1] = VBat_conv & 0x00FF0000;
 	  tx_buf[2] = VBat_conv & 0x0000FF00;
 	  tx_buf[3] = VBat_conv & 0x000000FF;
-
 
 	  broadcastPacket.batteryVoltage = tx_buf;
 //	  broadcast(tx_buf, (uint32_t) 4, &ble);

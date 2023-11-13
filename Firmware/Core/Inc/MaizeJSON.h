@@ -13,16 +13,24 @@
 
 // Define a struct to hold the deserialized values for each team
 typedef struct TeamInfo {
-    int score = 0;
-    int state = 0;
-}GameInfo;
+    int score;
+    int state;
+}TeamInfo;
 
 // Define a struct to hold the deserialized values
 typedef struct GameInfo {
-    struct TeamInfo team1 = {0,0};
-    struct TeamInfo team2 = {0,0};
-    int end_of_round = 0;
+    struct TeamInfo team1;
+    struct TeamInfo team2;
+    int end_of_round;
 }GameInfo;
+
+
+typedef struct BroadcastPacket {
+	uint32_t batteryVoltage;
+	uint32_t team0DeltaScore;
+	uint32_t team1DeltaScore;
+} BroadcastPacket;
+
 
 /**
  * @brief Deserialize JSON data and fill a struct with game information.
@@ -71,12 +79,42 @@ void deserializeJSON(const char* json_data, struct GameInfo* info) {
             info->team2.state = state_json->valueint;
         }
     }
-
     if (end_of_round_json && cJSON_IsBool(end_of_round_json)) {
         info->end_of_round = end_of_round_json->valueint;
     }
 
     cJSON_Delete(root);
+}
+
+
+
+/**
+ * @brief Serialize JSON data and fill a struct with game information.
+ *
+ * This function takes a broadcast packet and serializes it into a JSON and stores it in a char array.
+ *
+ * @param packet Pointer to he JSON data to be seralized.
+ * @param data Pointer to the string storing the serialized JSON information.
+ */
+void serializeJSON(BroadcastPacket* data, char* dst ){
+
+	 cJSON* json = cJSON_CreateObject();
+
+	    if (json == NULL) {
+//	        fprintf(stderr, "Failed to create JSON object.\n");
+	        return NULL;
+	    }
+
+	    cJSON_AddNumberToObject(json, "battery", data->batteryVoltage); // battery voltage
+	    cJSON_AddNumberToObject(json, "team1d", data->team0DeltaScore); // Team0 score delta
+	    cJSON_AddNumberToObject(json, "team2d", data->team1DeltaScore);
+
+	    dst = cJSON_Print(json);
+	    cJSON_Delete(json);
+
+	    return dst;
+
+
 }
 
 #endif /* INC_MAIZEJSON_H_ */

@@ -10,6 +10,7 @@
 
 #include "stm32l4xx_hal.h"
 #include <stdint.h>
+#include "cmsis_os.h"
 
 //#define SLEEP_MODE "AT+SLEEP"
 //#define AT "AT"
@@ -43,11 +44,11 @@ typedef struct BLE_interface
 
 
 // poll for events
-Void readyToRead(BLE_interface* ble, uint8_t* rx_buff);
+void readyToRead(BLE_interface* ble, uint8_t* rx_buff);
 
 // broadcast payload to other ble modules
 // return status
-uint32_t broadcast(uint32_t* tx_buffer, uint32_t size, BLE_interface* ble);
+uint32_t broadcast(uint8_t* tx_buffer, uint32_t size, BLE_interface* ble);
 
 
 #endif /* INC_BLUETOOTH_H_ */
