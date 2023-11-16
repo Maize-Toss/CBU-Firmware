@@ -26,6 +26,7 @@
 #include "reader.h"
 #include <stdbool.h>
 #include "MaizeJSON.h"
+#include "st25r95.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -68,6 +69,13 @@
 #define SEL5_Pin GPIO_PIN_6
 #define SEL6_Pin GPIO_PIN_13
 #define SEL7_Pin GPIO_PIN_12
+
+#define RFID_CS_PORT GPIOA
+#define RFID_CS_PIN GPIO_PIN_4
+#define RFID_NIRQ_IN_PORT GPIOC
+#define RFID_NIRQ_IN_PIN GPIO_PIN_4
+#define RFID_NIRQ_OUT_PORT GPIOB
+#define RFID_NIRQ_OUT_PIN GPIO_PIN_11
 
 
 /* USER CODE END PD */
@@ -154,6 +162,7 @@ void StartBatteryTask(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+
 /**
  * channel index is 0 indexed, 0-11
  */
@@ -239,6 +248,49 @@ uint8_t select_rfid_channel(uint8_t channel_index) {
 	return 0;
 }
 
+
+// UPDATE ALL THESE TO INCLUDE DELAYUNTIL or OSDELAY
+volatile st25r95_handle reader_handler;
+
+void reader_irq_pulse() {
+  HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_RESET);
+  // HAL_delay(1);
+  vTaskDelay(xTaskGetTickCount() + pdMS_TO_TICKS(1)); // delay 1 ms
+  HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_SET);
+  // HAL_delay(8);
+  vTaskDelay(xTaskGetTickCount() + pdMS_TO_TICKS(8)); // delay 8 ms
+}
+
+void reader_nss(uint8_t enable)
+{
+  HAL_GPIO_WritePin(RFID_CS_PORT, RFID_CS_PIN, enable ? GPIO_PIN_RESET : GPIO_PIN_SET);
+}
+
+int reader_tx(uint8_t *data, size_t len)
+{
+  int ret = HAL_SPI_Transmit(&hspi1, data, len, HAL_MAX_DELAY);
+  return ret;
+}
+
+int reader_rx(uint8_t *data, size_t len)
+{
+  int ret = HAL_SPI_Receive(&hspi1, data, len, HAL_MAX_DELAY);
+  return ret;
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t pin)
+{
+  if (pin == RFID_NIRQ_OUT_PIN) {
+    reader_handler.irq_flag = 1;
+  }
+}
+
+void st25_card_callback(uint8_t *uid)
+{
+  //HAL_Delay(uid[0]);
+  vTaskDelay(xTaskGetTickCount() + pdMS_TO_TICKS(uid[0])); // delay uid[0]
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -276,6 +328,23 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
+  // RFID INITIALIZATION
+  reader_handler.protocol = ST25_PROTOCOL_14443A;
+  reader_handler.tx_speed = ST25_26K_106K; // datarate used by 14443A
+  reader_handler.rx_speed = ST25_26K_106K; // same for up and downlinks
+  reader_handler.timerw = 0x58;
+  reader_handler.ARC = 0xD1;
+  reader_handler.irq_flag = 0;
+
+  /* Bind BSP Functions */
+  reader_handler.nss = reader_nss;
+  reader_handler.tx = reader_tx;
+  reader_handler.rx = reader_rx;
+  reader_handler.irq_pulse = reader_irq_pulse;
+  reader_handler.callback = st25_card_callback;
+
+  st25r95_init(&reader_handler);
+  st25r95_calibrate(&reader_handler);
   /* USER CODE END 2 */
 
   /* Init scheduler */
