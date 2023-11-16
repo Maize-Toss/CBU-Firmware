@@ -60,8 +60,8 @@ all: main-build
 main-build: st25r95-new.elf secondary-outputs
 
 # Tool invocations
-st25r95-new.elf st25r95-new.map: $(OBJS) $(USER_OBJS) C:\Users\MaiasPC\STM32CubeIDE\workspace_1.11.2\st25r95-new\STM32L452RETXP_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "st25r95-new.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\MaiasPC\STM32CubeIDE\workspace_1.11.2\st25r95-new\STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="st25r95-new.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+st25r95-new.elf st25r95-new.map: $(OBJS) $(USER_OBJS) C:\Users\evanm\Documents\Michigan\eecs473\Project\CBU-Firmware\st25r95-new\STM32L452RETXP_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "st25r95-new.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\evanm\Documents\Michigan\eecs473\Project\CBU-Firmware\st25r95-new\STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="st25r95-new.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

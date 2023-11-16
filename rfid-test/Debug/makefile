@@ -60,8 +60,8 @@ all: main-build
 main-build: rfid-test.elf secondary-outputs
 
 # Tool invocations
-rfid-test.elf rfid-test.map: $(OBJS) $(USER_OBJS) C:\Users\MaiasPC\STM32CubeIDE\workspace_1.11.2\rfid-test\STM32L452RETXP_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "rfid-test.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\MaiasPC\STM32CubeIDE\workspace_1.11.2\rfid-test\STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="rfid-test.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+rfid-test.elf rfid-test.map: $(OBJS) $(USER_OBJS) C:\Users\evanm\Documents\Michigan\eecs473\Project\CBU-Firmware\rfid-test\STM32L452RETXP_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "rfid-test.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\evanm\Documents\Michigan\eecs473\Project\CBU-Firmware\rfid-test\STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="rfid-test.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
