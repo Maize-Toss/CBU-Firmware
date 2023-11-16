@@ -44,12 +44,31 @@
 #define TX_BUFF_SIZE 256			// TODO: change to appropriate size
 
 #define BLE_CS_PORT GPIOA
-#define BLE_CS_PIN 0
+#define BLE_CS_PIN GPIO_PIN_0
 
 #define ADDR_PORT GPIOA
-#define ADDR_PIN 1
+#define ADDR_PIN GPIO_PIN_1
 
 #define SDU_NAME "SDU"
+
+#define SEL0_GPIO_Port GPIOC
+#define SEL1_GPIO_Port GPIOC
+#define SEL2_GPIO_Port GPIOB
+#define SEL3_GPIO_Port GPIOB
+#define SEL4_GPIO_Port GPIOC
+#define SEL5_GPIO_Port GPIOC
+#define SEL6_GPIO_Port GPIOB
+#define SEL7_GPIO_Port GPIOB
+
+#define SEL0_Pin GPIO_PIN_2
+#define SEL1_Pin GPIO_PIN_1
+#define SEL2_Pin GPIO_PIN_15
+#define SEL3_Pin GPIO_PIN_14
+#define SEL4_Pin GPIO_PIN_7
+#define SEL5_Pin GPIO_PIN_6
+#define SEL6_Pin GPIO_PIN_13
+#define SEL7_Pin GPIO_PIN_12
+
 
 /* USER CODE END PD */
 
@@ -134,6 +153,91 @@ void StartBatteryTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+/**
+ * channel index is 0 indexed, 0-11
+ */
+uint8_t select_rfid_channel(uint8_t channel_index) {
+	channel_index++;
+
+	// lol I originally wrote this to be 1 indexed, so I added
+	// channel_index++ to make it 0 indexed, the rest of the
+	// logic is 1 indexed though
+
+	if (channel_index < 1 || channel_index > 12) {
+		return 1;  // Invalid switch index
+	}
+
+	// Set U2.4
+	uint8_t switch_refdes = 0;  // U2.X for 1st layer switch
+	if (channel_index <= 4) {
+		HAL_GPIO_WritePin(SEL6_GPIO_Port, SEL6_Pin, 0);
+		HAL_GPIO_WritePin(SEL7_GPIO_Port, SEL7_Pin, 0);
+		switch_refdes = 1;
+	}
+	else if (channel_index <= 8) {
+		HAL_GPIO_WritePin(SEL6_GPIO_Port, SEL6_Pin, 1);
+		HAL_GPIO_WritePin(SEL7_GPIO_Port, SEL7_Pin, 1);
+		switch_refdes = 2;
+	}
+	else { // if channel_index <= 12
+		HAL_GPIO_WritePin(SEL6_GPIO_Port, SEL6_Pin, 1);
+		HAL_GPIO_WritePin(SEL7_GPIO_Port, SEL7_Pin, 0);
+		switch_refdes = 3;
+	}
+
+	// The pattern on each 2nd layer switch is the same, use multiplexing
+	uint8_t V0 = 0;
+	uint8_t V1 = 0;
+	if (channel_index % 4 == 0) {  // 4, 8, 12
+		V0 = 1;
+		V1 = 0;
+	}
+	else if (channel_index % 4 == 1) {  // 1, 5, 9
+		V0 = 0;
+		V1 = 0;
+	}
+	else if (channel_index % 4 == 2) {  // 2, 6, 10
+		V0 = 0;
+		V1 = 1;
+	}
+	else {  // if channel_index % 4 == 3  // 3, 7, 11
+		V0 = 1;
+		V1 = 1;
+	}
+
+	// The other switches' V0/V1 are don't care, but set them to 0 anyways
+	switch(switch_refdes) {
+	case 1:
+		HAL_GPIO_WritePin(SEL0_GPIO_Port, SEL0_Pin, V0);
+		HAL_GPIO_WritePin(SEL1_GPIO_Port, SEL1_Pin, V1);
+		HAL_GPIO_WritePin(SEL2_GPIO_Port, SEL2_Pin, 0);
+		HAL_GPIO_WritePin(SEL3_GPIO_Port, SEL3_Pin, 0);
+		HAL_GPIO_WritePin(SEL4_GPIO_Port, SEL4_Pin, 0);
+		HAL_GPIO_WritePin(SEL5_GPIO_Port, SEL5_Pin, 0);
+		break;
+	case 2:
+		HAL_GPIO_WritePin(SEL0_GPIO_Port, SEL0_Pin, 0);
+		HAL_GPIO_WritePin(SEL1_GPIO_Port, SEL1_Pin, 0);
+		HAL_GPIO_WritePin(SEL2_GPIO_Port, SEL2_Pin, V0);
+		HAL_GPIO_WritePin(SEL3_GPIO_Port, SEL3_Pin, V1);
+		HAL_GPIO_WritePin(SEL4_GPIO_Port, SEL4_Pin, 0);
+		HAL_GPIO_WritePin(SEL5_GPIO_Port, SEL5_Pin, 0);
+		break;
+	case 3:
+		HAL_GPIO_WritePin(SEL0_GPIO_Port, SEL0_Pin, 0);
+		HAL_GPIO_WritePin(SEL1_GPIO_Port, SEL1_Pin, 0);
+		HAL_GPIO_WritePin(SEL2_GPIO_Port, SEL2_Pin, 0);
+		HAL_GPIO_WritePin(SEL3_GPIO_Port, SEL3_Pin, 0);
+		HAL_GPIO_WritePin(SEL4_GPIO_Port, SEL4_Pin, V0);
+		HAL_GPIO_WritePin(SEL5_GPIO_Port, SEL5_Pin, V1);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
 
 /* USER CODE END 0 */
 
@@ -246,6 +350,14 @@ int main(void)
 //	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 0);
 //	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, 0);
 //  }
+  	  for(;;){
+	   for(uint8_t i = 0; i < 12;  i++){
+			  select_rfid_channel(i);
+			  for(volatile int x = 0; x  <1000000; x++);
+		}
+	  }
+//	  select_rfid_channel(8);
+//	  for(;;);
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -513,18 +625,28 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|LD4_Pin
-                          |GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6
-                          |GPIO_PIN_7, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_12
+                          |GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PC1 PC2 PC6 PC7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_6|GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
@@ -533,12 +655,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB2 LD4_Pin
-                           PB3 PB4 PB5 PB6
-                           PB7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|LD4_Pin
-                          |GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6
-                          |GPIO_PIN_7;
+  /*Configure GPIO pins : PB0 PB1 PB2 PB12
+                           PB13 PB14 PB15 PB3
+                           PB4 PB5 PB6 PB7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_12
+                          |GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
