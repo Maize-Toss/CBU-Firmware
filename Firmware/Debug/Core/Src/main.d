@@ -44,7 +44,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
  ../Core/Inc/bluetooth.h ../Core/Inc/reader.h ../Core/Inc/MaizeJSON.h \
- ../Core/Inc/cJSON.h
+ ../Core/Inc/cJSON.h ../Core/Inc/st25r95.h
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Core/Inc/stm32l4xx_hal_conf.h:
@@ -94,3 +94,4 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/reader.h:
 ../Core/Inc/MaizeJSON.h:
 ../Core/Inc/cJSON.h:
+../Core/Inc/st25r95.h:
