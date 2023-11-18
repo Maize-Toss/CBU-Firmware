@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include "MaizeJSON.h"
 #include "st25r95.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,7 +42,7 @@
 #define BAT_READ_PERIOD_MS 30000
 #define VBAT_CONVERSION_FACTOR (float) 3 * 3.3 / 4096 // VBat/3 = rawADC_IN18 * VREF / 2^12
 
-#define RX_BUFF_SIZE 256			// TODO: change to appropriate size
+#define RX_BUFF_SIZE 8			// TODO: change to appropriate size
 #define TX_BUFF_SIZE 256			// TODO: change to appropriate size
 
 #define BLE_CS_PORT GPIOA
@@ -99,7 +100,7 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for readRFIDTask */
 osThreadId_t readRFIDTaskHandle;
@@ -119,6 +120,13 @@ const osThreadAttr_t BluetoothRXTask_attributes = {
 osThreadId_t readBatteryVoltHandle;
 const osThreadAttr_t readBatteryVolt_attributes = {
   .name = "readBatteryVolt",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for broadcastTask */
+osThreadId_t broadcastTaskHandle;
+const osThreadAttr_t broadcastTask_attributes = {
+  .name = "broadcastTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
@@ -154,6 +162,7 @@ void StartDefaultTask(void *argument);
 void StartRFIDTask(void *argument);
 void StartBluetoothTask(void *argument);
 void StartBatteryTask(void *argument);
+void StartBroadcastTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -343,8 +352,7 @@ int main(void)
   reader_handler.irq_pulse = reader_irq_pulse;
   reader_handler.callback = st25_card_callback;
 
-  st25r95_init(&reader_handler);
-  st25r95_calibrate(&reader_handler);
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -383,6 +391,9 @@ int main(void)
   /* creation of readBatteryVolt */
   readBatteryVoltHandle = osThreadNew(StartBatteryTask, NULL, &readBatteryVolt_attributes);
 
+  /* creation of broadcastTask */
+  broadcastTaskHandle = osThreadNew(StartBroadcastTask, NULL, &broadcastTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -419,12 +430,12 @@ int main(void)
 //	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 0);
 //	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, 0);
 //  }
-  	  for(;;){
-	   for(uint8_t i = 0; i < 12;  i++){
-			  select_rfid_channel(i);
-			  for(volatile int x = 0; x  <1000000; x++);
-		}
-	  }
+//  	  for(;;){
+//	   for(uint8_t i = 0; i < 12;  i++){
+//			  select_rfid_channel(i);
+//			  for(volatile int x = 0; x  <1000000; x++);
+//		}
+//	  }
 //	  select_rfid_channel(8);
 //	  for(;;);
   /* USER CODE END RTOS_EVENTS */
@@ -571,11 +582,11 @@ static void MX_SPI1_Init(void)
   hspi1.Instance = SPI1;
   hspi1.Init.Mode = SPI_MODE_MASTER;
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi1.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -608,7 +619,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 38400;
+  huart1.Init.BaudRate = 9600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -694,10 +705,11 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1|GPIO_PIN_2|NIRQ_IN_Pin|GPIO_PIN_6
+                          |GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(SPI1_RFID_CS_GPIO_Port, SPI1_RFID_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_12
@@ -717,12 +729,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  /*Configure GPIO pin : SPI1_RFID_CS_Pin */
+  GPIO_InitStruct.Pin = SPI1_RFID_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(SPI1_RFID_CS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : NIRQ_IN_Pin */
+  GPIO_InitStruct.Pin = NIRQ_IN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(NIRQ_IN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB0 PB1 PB2 PB12
                            PB13 PB14 PB15 PB3
@@ -735,12 +754,24 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : NIRQ_OUT_Pin */
+  GPIO_InitStruct.Pin = NIRQ_OUT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(NIRQ_OUT_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	readyToRead(&ble, rx_buffer);
+	char* json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
+	HAL_UART_Transmit(&huart2,(uint8_t*)json_string, strlen(json_string),100);// Sending in normal mode
+	readyToRead(&ble, rx_buffer, RX_BUFF_SIZE);
 	osSemaphoreRelease(BluetoothRXHandle);
 }
 
@@ -757,9 +788,22 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
+  int ret;
+  int count = 0;
+  memset(rx_buffer, 0, RX_BUFF_SIZE);
+  char* json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
+//  char* json_string = "THIS MF AINT JOINING OUR 470 GROUP";
+
+//  char* json_string = "ICE SPICE";
   for(;;)
   {
-    osDelay(1);
+//	ret = HAL_UART_Receive(&huart1, rx_buffer, RX_BUFF_SIZE, 5000);// Sending in normal mode
+//	if(ret == HAL_OK){
+//		count++;
+//	}
+	 HAL_UART_Transmit(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
+
+
   }
   /* USER CODE END 5 */
 }
@@ -774,6 +818,8 @@ void StartDefaultTask(void *argument)
 void StartRFIDTask(void *argument)
 {
   /* USER CODE BEGIN StartRFIDTask */
+	st25r95_init(&reader_handler);
+	st25r95_calibrate(&reader_handler);
 
 	TickType_t xLastWakeTime;
 	const TickType_t period = pdMS_TO_TICKS(RFID_READ_PERIOD_MS);
@@ -816,14 +862,13 @@ void StartBluetoothTask(void *argument)
 {
   /* USER CODE BEGIN StartBluetoothTask */
 
-	uint8_t rx_buff[RX_BUFF_SIZE];
 	uint32_t size = 0;
 
  /* Infinite loop */
   for(;;)
   {
 	  osSemaphoreAcquire(BluetoothRXHandle, osWaitForever);
-	  deserializeJSON((char*)rx_buff, &gameInfo);
+	  deserializeJSON((char*)rx_buffer, &gameInfo);
 	  if (gameInfo.end_of_round){ //TODO: verify we only want to send at end of round
 		  // Alternatively, we could have an extra element in the JSON like a boolean so whenever it isnt set, we know only to care about the battery voltage
 		  for(uint32_t i = 0; i < 300; i++){
@@ -878,6 +923,32 @@ void StartBatteryTask(void *argument)
 
   }
   /* USER CODE END StartBatteryTask */
+}
+
+/* USER CODE BEGIN Header_StartBroadcastTask */
+/**
+* @brief Function implementing the broadcastTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartBroadcastTask */
+void StartBroadcastTask(void *argument)
+{
+  /* USER CODE BEGIN StartBroadcastTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    int ret;
+    int count = 0;
+    memset(rx_buffer, 0, RX_BUFF_SIZE);
+   //  char* json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
+    char* json_string = "ICE SPICE";
+    for(;;)
+    {
+    	HAL_UART_Transmit(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
+    }
+  }
+  /* USER CODE END StartBroadcastTask */
 }
 
 /**

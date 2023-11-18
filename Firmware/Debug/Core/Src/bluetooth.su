@@ -1,2 +1,2 @@
-../Core/Src/bluetooth.c:12:6:readyToRead	16	static
+../Core/Src/bluetooth.c:12:6:readyToRead	24	static
 ../Core/Src/bluetooth.c:16:10:broadcast	24	static
