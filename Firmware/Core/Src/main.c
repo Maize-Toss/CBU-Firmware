@@ -814,7 +814,11 @@ void StartDefaultTask(void *argument)
 //		}
 
 		// send reply packet
-		HAL_UART_Transmit(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
+		broadcastPacket.team0DeltaScore = 2;
+		broadcastPacket.team0DeltaScore = 2;
+		serializeJSON(&broadcastPacket,tx_buffer);
+		HAL_UART_Transmit(&huart1,(uint8_t*)tx_buffer, strlen(json_string),5000);
+//		osSemaphoreRelease(BluetoothRXHandle, osWaitForever);
 
 
 	}
@@ -884,6 +888,7 @@ void StartBluetoothTask(void *argument)
   for(;;)
   {
 	  osSemaphoreAcquire(BluetoothRXHandle, osWaitForever);
+
 	  if (gameInfo.end_of_round){ //TODO: verify we only want to send at end of round
 		  // Alternatively, we could have an extra element in the JSON like a boolean so whenever it isnt set, we know only to care about the battery voltage
 		  for(uint32_t i = 0; i < 300; i++){
