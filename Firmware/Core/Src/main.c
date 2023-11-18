@@ -39,10 +39,12 @@
 /* USER CODE BEGIN PD */
 
 #define RFID_READ_PERIOD_MS 3000
+#define BROADCAST_PERIOD_MS 200
+#define RECEIVE_PERIOD_MS 200
 #define BAT_READ_PERIOD_MS 30000
 #define VBAT_CONVERSION_FACTOR (float) 3 * 3.3 / 4096 // VBat/3 = rawADC_IN18 * VREF / 2^12
 
-#define RX_BUFF_SIZE 8			// TODO: change to appropriate size
+#define RX_BUFF_SIZE 256			// TODO: change to appropriate size
 #define TX_BUFF_SIZE 256			// TODO: change to appropriate size
 
 #define BLE_CS_PORT GPIOA
@@ -767,13 +769,13 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-	char* json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
-	HAL_UART_Transmit(&huart2,(uint8_t*)json_string, strlen(json_string),100);// Sending in normal mode
-	readyToRead(&ble, rx_buffer, RX_BUFF_SIZE);
-	osSemaphoreRelease(BluetoothRXHandle);
-}
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+//{
+//	char* json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
+//	HAL_UART_Transmit(&huart2,(uint8_t*)json_string, strlen(json_string),100);// Sending in normal mode
+//	readyToRead(&ble, rx_buffer, RX_BUFF_SIZE);
+//	osSemaphoreRelease(BluetoothRXHandle);
+//}
 
 /* USER CODE END 4 */
 
@@ -788,22 +790,36 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
+  TickType_t xLastWakeTime;
+  const TickType_t period = pdMS_TO_TICKS(BROADCAST_PERIOD_MS);
+
+  xLastWakeTime = xTaskGetTickCount();
+
   int ret;
   int count = 0;
   memset(rx_buffer, 0, RX_BUFF_SIZE);
+//  char* json_string = "ICE SPICE \n";
   char* json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
-//  char* json_string = "THIS MF AINT JOINING OUR 470 GROUP";
 
-//  char* json_string = "ICE SPICE";
+
   for(;;)
   {
-//	ret = HAL_UART_Receive(&huart1, rx_buffer, RX_BUFF_SIZE, 5000);// Sending in normal mode
-//	if(ret == HAL_OK){
-//		count++;
-//	}
-	 HAL_UART_Transmit(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
+	ret = HAL_UART_Receive(&huart1, rx_buffer, RX_BUFF_SIZE, 5000);// Sending in normal mode
+	if(ret == HAL_OK){
+		// deserialize packet
+		deserializeJSON((char*)rx_buffer, &gameInfo);
+
+//		if (gameInfo.end_of_round) {
+//			// do some other stuff
+//		}
+
+		// send reply packet
+		HAL_UART_Transmit(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
 
 
+	}
+//	 HAL_UART_Receive(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
+	 vTaskDelayUntil( &xLastWakeTime, period );
   }
   /* USER CODE END 5 */
 }
@@ -868,7 +884,6 @@ void StartBluetoothTask(void *argument)
   for(;;)
   {
 	  osSemaphoreAcquire(BluetoothRXHandle, osWaitForever);
-	  deserializeJSON((char*)rx_buffer, &gameInfo);
 	  if (gameInfo.end_of_round){ //TODO: verify we only want to send at end of round
 		  // Alternatively, we could have an extra element in the JSON like a boolean so whenever it isnt set, we know only to care about the battery voltage
 		  for(uint32_t i = 0; i < 300; i++){
@@ -936,18 +951,38 @@ void StartBroadcastTask(void *argument)
 {
   /* USER CODE BEGIN StartBroadcastTask */
   /* Infinite loop */
-  for(;;)
-  {
-    int ret;
-    int count = 0;
-    memset(rx_buffer, 0, RX_BUFF_SIZE);
-   //  char* json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
-    char* json_string = "ICE SPICE";
-    for(;;)
-    {
-    	HAL_UART_Transmit(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
-    }
-  }
+	TickType_t xLastWakeTime;
+	const TickType_t period = pdMS_TO_TICKS(BROADCAST_PERIOD_MS);
+
+	memset(rx_buffer, 0, RX_BUFF_SIZE);
+	char* json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
+	//  char* json_string = "THIS MF AINT JOINING OUR 470 GROUP";
+
+	//  char* json_string = "ICE SPICE";
+	for(;;)
+	{
+
+//		HAL_UART_Transmit(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
+//		vTaskDelayUntil( &xLastWakeTime, period );
+
+	}
+
+
+
+
+
+//  for(;;)
+//  {
+//    int ret;
+//    int count = 0;
+//    memset(rx_buffer, 0, RX_BUFF_SIZE);
+//   //  char* json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
+//    char* json_string = "ICE SPICE";
+//    for(;;)
+//    {
+////    	HAL_UART_Transmit(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
+//    }
+//  }
   /* USER CODE END StartBroadcastTask */
 }
 
