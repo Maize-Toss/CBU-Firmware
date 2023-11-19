@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "stm32l452xx.h"
 
 #ifndef __weak
 #define __weak   __attribute__((weak))
@@ -167,6 +168,8 @@ st25r95_status_t st25r95_off(st25r95_handle *);
 
 st25r95_status_t st25r95_14443A(st25r95_handle *);
 
+st25r95_status_t st25r95_15693(st25r95_handle *);
+
 st25r95_status_t st25r95_read_reg(st25r95_handle *, uint8_t, uint8_t *);
 
 st25r95_status_t st25r95_write_timerw(st25r95_handle *, uint8_t);
@@ -184,6 +187,12 @@ void st25r95_14443A_ANTICOLLISION(st25r95_handle *, uint8_t, uint8_t *);
 void st25r95_14443A_select(st25r95_handle *, uint8_t, uint8_t *, uint8_t, uint8_t, uint8_t, uint8_t);
 
 uint8_t st25r95_14443A_detect(st25r95_handle *);
+
+uint8_t st25r95_15693_inventory1(st25r95_handle *);
+
+uint8_t st25r95_15693_inventory16(st25r95_handle *);
+
+uint8_t st25r95_15693_detect(st25r95_handle *);
 
 void st25r95_idle(st25r95_handle *);
 

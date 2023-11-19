@@ -19,8 +19,19 @@ void st25r95_service(st25r95_handle *handler) {
     handler->irq_flag = 0;
     if (handler->state == ST25_STATE_IDLE) {
       st25r95_init(handler);
-      if (st25r95_14443A_detect(handler)) {
+      if (handler->protocol == ST25_PROTOCOL_14443A
+    		  & st25r95_14443A_detect(handler)) {
         handler->callback(handler->uid);
+        HAL_GPIO_WritePin(GPIOB, 1 << 4, 1);
+        for(volatile i=0;i<10000; ++i);
+      }
+      else if (handler->protocol == ST25_PROTOCOL_15693
+    		  & st25r95_15693_inventory1(handler)) {
+        handler->callback(handler->uid);
+        HAL_GPIO_WritePin(GPIOB, 1 << 4, 1);
+        for(volatile i=0;i<10000; ++i);
+      } else {
+    	HAL_GPIO_WritePin(GPIOB, 1 << 4, 0);
       }
       st25r95_idle(handler);
     }
@@ -34,7 +45,8 @@ uint8_t *st25r95_response(st25r95_handle *handler) {
   handler->nss(1);
   st25r95_spi_byte(handler, ST25_READ);
   handler->rx(rx_data, 1);
-  if (rx_data[0] == ST25_ECHO) {
+  if (rx_data[0] == ST25_ECHO)
+  {
     handler->nss(0);
     return rx_data;
   }
@@ -54,6 +66,10 @@ void st25r95_init(st25r95_handle *handler) {
       st25r95_write_timerw(handler, handler->timerw);
       st25r95_write_ARC(handler, 1, handler->ARC);
       break;
+    case ST25_PROTOCOL_15693:
+      st25r95_15693(handler);
+	  st25r95_write_ARC(handler, 1, handler->ARC);
+	  break;
     default:
       st25r95_off(handler);
       break;
@@ -111,6 +127,25 @@ st25r95_status_t st25r95_14443A(st25r95_handle *handler) {
   handler->nss(0);
 
   handler->protocol = ST25_PROTOCOL_14443A;
+
+  uint8_t *res = st25r95_response(handler);
+  return res[0];
+}
+
+st25r95_status_t st25r95_15693(st25r95_handle *handler) {
+  tx_buffer[0] = ST25_SEND;
+  tx_buffer[1] = ST25_PS;
+  tx_buffer[2] = 2;
+  tx_buffer[3] = ST25_PROTOCOL_15693;
+  tx_buffer[4] = handler->tx_speed << 4 | 0 << 3
+  	  	  	  	  | 0 << 2 | 0 << 1 | 1 << 0;
+  tx_len = 5;
+
+  handler->nss(1);
+  st25r95_spi_tx(handler);
+  handler->nss(0);
+
+  handler->protocol = ST25_PROTOCOL_15693;
 
   uint8_t *res = st25r95_response(handler);
   return res[0];
@@ -298,6 +333,75 @@ st25r95_14443A_select(st25r95_handle *handler, uint8_t level, uint8_t *data, uin
   if (res[0] != ST25_EFrameRecvOK) return;
 
   memcpy(data, res + 2, res[1]);
+}
+
+uint8_t st25r95_15693_inventory1(st25r95_handle *handler)
+{
+  tx_buffer[0] = ST25_SEND;
+  tx_buffer[1] = ST25_SR;
+  tx_buffer[2] = 0x3; // length of 15693 command frame
+  tx_buffer[3] = 0x01; // flags
+  tx_buffer[4] = 0x20; // command code
+  tx_buffer[5] = 0x00; // non-addressed & no mask
+  // CRC automatically appended by 15693 protocol select
+  tx_len = 6;
+
+  handler->nss(1);
+  st25r95_spi_tx(handler);
+  handler->nss(0);
+
+  uint8_t *res = st25r95_response(handler);
+  if (res[0] != ST25_EFrameRecvOK) return 0;
+
+  memset(handler->uid, 0, 8);
+  memcpy(handler->uid, res[4], 8);
+  return 1;
+}
+
+uint8_t st25r95_15693_inventory16(st25r95_handle *handler)
+{
+  tx_buffer[0] = ST25_SEND;
+  tx_buffer[1] = ST25_SR;
+  tx_buffer[2] = 0x3; // length of 15693 command frame
+  tx_buffer[3] = 0b00000110; // flags
+  tx_buffer[4] = 0x01; // command code
+  tx_buffer[5] = 0x00; // non-addressed & no mask
+  // CRC automatically appended by 15693 protocol select
+  tx_len = 6;
+
+  handler->nss(1);
+  st25r95_spi_tx(handler);
+  handler->nss(0);
+
+  uint8_t *res = st25r95_response(handler);
+  if (res[0] != ST25_EFrameRecvOK) return 0;
+
+  memset(handler->uid, 0, 8);
+  memcpy(handler->uid, res[4], 8);
+  return 1;
+}
+
+uint8_t st25r95_15693_(st25r95_handle *handler)
+{
+  tx_buffer[0] = ST25_SEND;
+  tx_buffer[1] = ST25_SR;
+  tx_buffer[2] = 0x3; // length of 15693 command frame
+  tx_buffer[3] = 0b00000010; // flags
+  tx_buffer[4] = 0x20; // command code
+  tx_buffer[5] = 0x00; // non-addressed & no mask
+  // CRC automatically appended by 15693 protocol select
+  tx_len = 6;
+
+  handler->nss(1);
+  st25r95_spi_tx(handler);
+  handler->nss(0);
+
+  uint8_t *res = st25r95_response(handler);
+  if (res[0] != ST25_EFrameRecvOK) return 0;
+
+  memset(handler->uid, 0, 8);
+  memcpy(handler->uid, res[4], 8);
+  return 1;
 }
 
 void st25r95_idle(st25r95_handle *handler) {

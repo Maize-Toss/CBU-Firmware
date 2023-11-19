@@ -81,40 +81,6 @@ static void MX_SPI1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-volatile st25r95_handle reader_handler;
-
-void reader_irq_pulse() {
-  HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_RESET);
-  HAL_Delay(1);
-  HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_SET);
-  HAL_Delay(8);
-}
-
-void reader_nss(uint8_t enable) {
-  HAL_GPIO_WritePin(RFID_CS_PORT, RFID_CS_PIN, enable ? GPIO_PIN_RESET : GPIO_PIN_SET);
-}
-
-int reader_tx(uint8_t *data, size_t len) {
-  int ret = HAL_SPI_Transmit(&hspi1, data, len, HAL_MAX_DELAY);
-  return ret;
-}
-
-int reader_rx(uint8_t *data, size_t len) {
-  int ret = HAL_SPI_Receive(&hspi1, data, len, HAL_MAX_DELAY);
-  return ret;
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t pin) {
-  if (pin == RFID_NIRQ_OUT_PIN) {
-    reader_handler.irq_flag = 1;
-  }
-}
-
-void st25_card_callback(uint8_t *uid) {
-  HAL_Delay(uid[0]);
-}
-
-// port is 1-indexed
 void select_switch_port(uint8_t channel_index) {
 
 	// lol I originally wrote this to be 1 indexed, so I added
@@ -196,6 +162,38 @@ void select_switch_port(uint8_t channel_index) {
 		return 0;
 }
 
+volatile st25r95_handle reader_handler;
+
+void reader_irq_pulse() {
+  HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_RESET);
+  HAL_Delay(1);
+  HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_SET);
+  HAL_Delay(8);
+}
+
+void reader_nss(uint8_t enable) {
+  HAL_GPIO_WritePin(RFID_CS_PORT, RFID_CS_PIN, enable ? GPIO_PIN_RESET : GPIO_PIN_SET);
+}
+
+int reader_tx(uint8_t *data, size_t len) {
+  int ret = HAL_SPI_Transmit(&hspi1, data, len, HAL_MAX_DELAY);
+  return ret;
+}
+
+int reader_rx(uint8_t *data, size_t len) {
+  int ret = HAL_SPI_Receive(&hspi1, data, len, HAL_MAX_DELAY);
+  return ret;
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t pin) {
+  if (pin == RFID_NIRQ_OUT_PIN) {
+    reader_handler.irq_flag = 1;
+  }
+}
+
+void st25_card_callback(uint8_t *uid) {
+  HAL_Delay(uid[0]);
+}
 /* USER CODE END 0 */
 
 /**
@@ -230,7 +228,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   /* Setup all protocol */
-  reader_handler.protocol = ST25_PROTOCOL_14443A;
+  reader_handler.protocol = ST25_PROTOCOL_15693;
   reader_handler.tx_speed = ST25_26K_106K; // datarate used by 14443A
   reader_handler.rx_speed = ST25_26K_106K; // same for up and downlinks
   reader_handler.timerw = 0x58;
@@ -244,8 +242,10 @@ int main(void)
   reader_handler.irq_pulse = reader_irq_pulse;
   reader_handler.callback = st25_card_callback;
 
+  select_switch_port(7);
   st25r95_init(&reader_handler);
   st25r95_calibrate(&reader_handler);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -253,9 +253,6 @@ int main(void)
 
   st25r95_idle(&reader_handler);
   while (1) {
-
-	  select_switch_port(5); // 1-indexed :)
-
     st25r95_service(&reader_handler);
     /* USER CODE END WHILE */
 

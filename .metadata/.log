@@ -1,0 +1,18 @@
+!SESSION 2023-11-19 13:58:25.074 -----------------------------------------------
+eclipse.buildId=Version 1.11.2
+java.version=11.0.16
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64 -data C:\Users\MaiasPC\Documents\School\F23\EECS 473\CBU-Firmware
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2023-11-19 13:58:30.779
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2023-11-19 13:58:30.870
+!MESSAGE Log4j initialized with config file C:\Users\MaiasPC\Documents\School\F23\EECS 473\CBU-Firmware\.metadata\.log4j.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2023-11-19 13:58:33.778
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.cdt.core 1 0 2023-11-19 13:58:48.830
+!MESSAGE Indexed 'rfid-test' (24 sources, 119 headers) in 3.35 sec: 11,392 declarations; 55,851 references; 3 unresolved inclusions; 46 syntax errors; 171 unresolved names (0.25%)
