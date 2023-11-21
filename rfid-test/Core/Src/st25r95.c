@@ -68,7 +68,6 @@ void st25r95_init(st25r95_handle *handler) {
       break;
     case ST25_PROTOCOL_15693:
       st25r95_15693(handler);
-	  st25r95_write_ARC(handler, 1, handler->ARC);
 	  break;
     default:
       st25r95_off(handler);
@@ -340,8 +339,8 @@ uint8_t st25r95_15693_inventory1(st25r95_handle *handler)
   tx_buffer[0] = ST25_SEND;
   tx_buffer[1] = ST25_SR;
   tx_buffer[2] = 0x3; // length of 15693 command frame
-  tx_buffer[3] = 0x01; // flags
-  tx_buffer[4] = 0x20; // command code
+  tx_buffer[3] = 0x26; // flags
+  tx_buffer[4] = 0x01; // command code
   tx_buffer[5] = 0x00; // non-addressed & no mask
   // CRC automatically appended by 15693 protocol select
   tx_len = 6;
@@ -365,29 +364,6 @@ uint8_t st25r95_15693_inventory16(st25r95_handle *handler)
   tx_buffer[2] = 0x3; // length of 15693 command frame
   tx_buffer[3] = 0b00000110; // flags
   tx_buffer[4] = 0x01; // command code
-  tx_buffer[5] = 0x00; // non-addressed & no mask
-  // CRC automatically appended by 15693 protocol select
-  tx_len = 6;
-
-  handler->nss(1);
-  st25r95_spi_tx(handler);
-  handler->nss(0);
-
-  uint8_t *res = st25r95_response(handler);
-  if (res[0] != ST25_EFrameRecvOK) return 0;
-
-  memset(handler->uid, 0, 8);
-  memcpy(handler->uid, res[4], 8);
-  return 1;
-}
-
-uint8_t st25r95_15693_(st25r95_handle *handler)
-{
-  tx_buffer[0] = ST25_SEND;
-  tx_buffer[1] = ST25_SR;
-  tx_buffer[2] = 0x3; // length of 15693 command frame
-  tx_buffer[3] = 0b00000010; // flags
-  tx_buffer[4] = 0x20; // command code
   tx_buffer[5] = 0x00; // non-addressed & no mask
   // CRC automatically appended by 15693 protocol select
   tx_len = 6;

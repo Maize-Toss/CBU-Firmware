@@ -168,7 +168,7 @@ void reader_irq_pulse() {
   HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_RESET);
   HAL_Delay(1);
   HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_SET);
-  HAL_Delay(8);
+  HAL_Delay(11);
 }
 
 void reader_nss(uint8_t enable) {

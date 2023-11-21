@@ -2,7 +2,7 @@
 ../Core/Src/st25r95.c:11:6:st25r95_spi_byte	16	static
 ../Core/Src/st25r95.c:17:6:st25r95_service	32	static
 ../Core/Src/st25r95.c:41:10:st25r95_response	16	static
-../Core/Src/st25r95.c:58:6:st25r95_init	16	static
+../Core/Src/st25r95.c:59:6:st25r95_init	16	static
 ../Core/Src/st25r95.c:78:6:st25r95_reset	16	static
 ../Core/Src/st25r95.c:84:18:st25r95_IDN	24	static
 ../Core/Src/st25r95.c:100:18:st25r95_off	24	static
@@ -19,6 +19,5 @@
 ../Core/Src/st25r95.c:312:1:st25r95_14443A_select	32	static
 ../Core/Src/st25r95.c:337:9:st25r95_15693_inventory1	24	static
 ../Core/Src/st25r95.c:360:9:st25r95_15693_inventory16	24	static
-../Core/Src/st25r95.c:383:9:st25r95_15693_	24	static
-../Core/Src/st25r95.c:406:6:st25r95_idle	16	static
-../Core/Src/st25r95.c:433:6:st25r95_calibrate	32	static
+../Core/Src/st25r95.c:383:6:st25r95_idle	16	static
+../Core/Src/st25r95.c:410:6:st25r95_calibrate	32	static
