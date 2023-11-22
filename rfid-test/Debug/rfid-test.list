@@ -37,13 +37,13 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  16 .debug_macro  00021c5c  00000000  00000000  0002a760  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   00008b75  00000000  00000000  0004c3bc  2**0
+ 17 .debug_line   00008b47  00000000  00000000  0004c3bc  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000cc86a  00000000  00000000  00054f31  2**0
+ 18 .debug_str    000cc86d  00000000  00000000  00054f03  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000050  00000000  00000000  0012179b  2**0
+ 19 .comment      00000050  00000000  00000000  00121770  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00002104  00000000  00000000  001217ec  2**2
+ 20 .debug_frame  00002104  00000000  00000000  001217c0  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -375,8 +375,8 @@ void reader_irq_pulse() {
  80003ba:	2110      	movs	r1, #16
  80003bc:	4803      	ldr	r0, [pc, #12]	; (80003cc <reader_irq_pulse+0x28>)
  80003be:	f001 fafd 	bl	80019bc <HAL_GPIO_WritePin>
-  HAL_Delay(8);
- 80003c2:	2008      	movs	r0, #8
+  HAL_Delay(11);
+ 80003c2:	200b      	movs	r0, #11
  80003c4:	f001 f84a 	bl	800145c <HAL_Delay>
 }
  80003c8:	bf00      	nop

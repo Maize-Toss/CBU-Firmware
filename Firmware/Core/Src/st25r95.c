@@ -18,7 +18,7 @@ void st25r95_service(st25r95_handle *handler) {
   if (handler->irq_flag == 1) {
     handler->irq_flag = 0;
     if (handler->state == ST25_STATE_IDLE) {
-      st25r95_init(handler); // ********************************************* TODO look at this plz
+      st25r95_init(handler);
       if (handler->protocol == ST25_PROTOCOL_14443A
     		  && st25r95_14443A_detect(handler)) {
         handler->callback(handler->uid);
@@ -384,7 +384,7 @@ void st25r95_idle(st25r95_handle *handler) {
   tx_buffer[0] = ST25_SEND;
   tx_buffer[1] = ST25_IDLE;
   tx_buffer[2] = 0x0E;
-  tx_buffer[3] = ST25_WU_SRC_TagDetection;
+  tx_buffer[3] = 0b00001011;
   tx_buffer[4] = ST25_EC_TagDetection >> 8;
   tx_buffer[5] = ST25_EC_TagDetection & 0xFF;
   tx_buffer[6] = ST25_WU_CTRL_TagDetection >> 8;

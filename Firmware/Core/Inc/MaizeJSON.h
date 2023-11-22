@@ -96,7 +96,7 @@ void deserializeJSON(const char* json_data, struct GameInfo* info) {
  * @param packet Pointer to he JSON data to be seralized.
  * @param data Pointer to the string storing the serialized JSON information.
  */
-void serializeJSON(BroadcastPacket* data, char* dst ){
+void* serializeJSON(BroadcastPacket* data, char* dst ){
 
 	 cJSON* json = cJSON_CreateObject();
 

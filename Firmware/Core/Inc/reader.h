@@ -11,8 +11,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "stm32l4xx_hal.h"
+#include "st25r95.h"
 
-#define ARR_SIZE 8
+#include "cmsis_os.h"
+
+#define NUM_BAGS 8
 
 #define SEL0_GPIO_Port GPIOC
 #define SEL1_GPIO_Port GPIOC
@@ -48,14 +51,14 @@ typedef struct BeanBag_interface {
 	uint64_t uid3;
 	uint64_t uid4;
 
-	bool detected = false;
+	bool detected;
 } BeanBag_interface;
 
 // global variable for RFID tag info to be tracked
-extern BeanBag_interface BagInfo[8];
+extern BeanBag_interface BagInfo[NUM_BAGS];
 
 // global variable for tracking the status of each bag
-extern uint8_t BagStatus[8];
+extern uint8_t BagStatus[NUM_BAGS];
 
 // used to set up struct and initialize colors, tag IDs, etc
 // modifies beanbag_interface
@@ -63,7 +66,7 @@ extern uint8_t BagStatus[8];
 void BeanBag_setup();
 
 // Clears detected variable for all beanbags
-void BeanBag_clearDetected(void) {
+void BeanBag_clearDetected(void);
 
 // find ID in array of BeanBag_interfaces
 // modifies nothing
@@ -82,6 +85,6 @@ int RFID_init(RFID_interface *pInterface);
 int RFID_read(const RFID_interface *pInterface, int *buf, int timeout_ms, bool blocking);
 
 // reads all RFID antenna regions and updates the global BagStatus array
-void RFID_readArray(void);
+void RFID_readArray(st25r95_handle *handler);
 
 #endif /* INC_READER_H_ */
