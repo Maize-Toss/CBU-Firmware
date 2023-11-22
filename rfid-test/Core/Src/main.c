@@ -242,7 +242,7 @@ int main(void)
   reader_handler.irq_pulse = reader_irq_pulse;
   reader_handler.callback = st25_card_callback;
 
-  select_switch_port(7);
+  select_switch_port(10);
   st25r95_init(&reader_handler);
   st25r95_calibrate(&reader_handler);
 
