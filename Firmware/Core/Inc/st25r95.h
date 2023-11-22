@@ -138,6 +138,8 @@ typedef void (*st25r95_irq_pulse)();
 
 typedef void (*st25r95_callback)(uint8_t *);
 
+#define UID_SIZE 10
+
 typedef struct {
   /* Reader state and variables */
   st25r95_state_t state;
@@ -147,7 +149,7 @@ typedef struct {
   st25r95_rate_t rx_speed;
   uint8_t timerw;
   uint8_t ARC;
-  uint8_t uid[10];
+  uint8_t uid[UID_SIZE];
   volatile uint8_t irq_flag;
   /* BSP Functions */
   st25r95_callback callback;

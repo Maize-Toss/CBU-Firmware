@@ -38,7 +38,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define RFID_READ_PERIOD_MS 3000
+#define RFID_READ_PERIOD_MS 1000
 #define BROADCAST_PERIOD_MS 200
 #define RECEIVE_PERIOD_MS 200
 #define BAT_READ_PERIOD_MS 30000
@@ -140,7 +140,6 @@ const osSemaphoreAttr_t BluetoothRX_attributes = {
 /* USER CODE BEGIN PV */
 BroadcastPacket broadcastPacket = {0,0,0};
 
-
 char CBU_ID[4] = "CBUx";
 
 BLE_interface ble;
@@ -175,14 +174,9 @@ void StartBroadcastTask(void *argument);
 
 
 /**
- * channel index is 0 indexed, 0-11
+ * channel index is 1 indexed, 1-12
  */
 uint8_t select_rfid_channel(uint8_t channel_index) {
-	channel_index++;
-
-	// lol I originally wrote this to be 1 indexed, so I added
-	// channel_index++ to make it 0 indexed, the rest of the
-	// logic is 1 indexed though
 
 	if (channel_index < 1 || channel_index > 12) {
 		return 1;  // Invalid switch index
@@ -265,11 +259,9 @@ volatile st25r95_handle reader_handler;
 
 void reader_irq_pulse() {
   HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_RESET);
-  // HAL_delay(1);
-  vTaskDelay(xTaskGetTickCount() + pdMS_TO_TICKS(1)); // delay 1 ms
+  vTaskDelay(xTaskGetTickCount() + pdMS_TO_TICKS(2)); // delay 2 ms
   HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_SET);
-  // HAL_delay(8);
-  vTaskDelay(xTaskGetTickCount() + pdMS_TO_TICKS(8)); // delay 8 ms
+  vTaskDelay(xTaskGetTickCount() + pdMS_TO_TICKS(11)); // delay 11 ms
 }
 
 void reader_nss(uint8_t enable)
@@ -298,7 +290,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin)
 
 void st25_card_callback(uint8_t *uid)
 {
-  //HAL_Delay(uid[0]);
   vTaskDelay(xTaskGetTickCount() + pdMS_TO_TICKS(uid[0])); // delay uid[0]
 }
 
@@ -339,9 +330,9 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
-  // RFID INITIALIZATION
-  reader_handler.protocol = ST25_PROTOCOL_14443A;
-  reader_handler.tx_speed = ST25_26K_106K; // datarate used by 14443A
+  /* Setup all protocol */
+  reader_handler.protocol = ST25_PROTOCOL_15693;
+  reader_handler.tx_speed = ST25_26K_106K; // datarate
   reader_handler.rx_speed = ST25_26K_106K; // same for up and downlinks
   reader_handler.timerw = 0x58;
   reader_handler.ARC = 0xD1;
@@ -354,6 +345,7 @@ int main(void)
   reader_handler.irq_pulse = reader_irq_pulse;
   reader_handler.callback = st25_card_callback;
 
+  BeanBag_setup();
 
   /* USER CODE END 2 */
 
@@ -846,8 +838,8 @@ void StartRFIDTask(void *argument)
 
 	xLastWakeTime = xTaskGetTickCount();
 
-	uint8_t team0RawScore = 0;
-	uint8_t team1RawScore = 0;
+	uint8_t redRawScore = 0;
+	uint8_t blueRawScore = 0;
 
 	uint8_t tx_buf[2];
 
@@ -855,13 +847,13 @@ void StartRFIDTask(void *argument)
 	for(;;)
 		// osDelay(RFID_READ_PERIOD_MS); // temp for commenting out the rest of the task
 	{
-		RFID_readArray();
+		RFID_readArray(&reader_handler);
 
-		calculateRawScore(&team0RawScore, false);
-		calculateRawScore(&team1RawScore, true); // true to move BagStatus pointer to the Team 1 section
+		calculateRawScore(&redRawScore, false);
+		calculateRawScore(&blueRawScore, true); // true to move BagStatus pointer to the Blue section
 
-		broadcastPacket.team0DeltaScore = team0RawScore;
-		broadcastPacket.team1DeltaScore = team1RawScore;
+		broadcastPacket.redDeltaScore = redRawScore;
+		broadcastPacket.blueDeltaScore = blueRawScore;
 
 
 //		broadcast(tx_buf, (uint32_t) 2, &ble);

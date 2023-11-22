@@ -19,16 +19,16 @@ typedef struct TeamInfo {
 
 // Define a struct to hold the deserialized values
 typedef struct GameInfo {
-    struct TeamInfo team1;
-    struct TeamInfo team2;
+    struct TeamInfo red;
+    struct TeamInfo blue;
     int end_of_round;
 }GameInfo;
 
 
 typedef struct BroadcastPacket {
 	uint32_t batteryVoltage;
-	uint32_t team0DeltaScore;
-	uint32_t team1DeltaScore;
+	uint32_t redDeltaScore;
+	uint32_t blueDeltaScore;
 } BroadcastPacket;
 
 
@@ -50,33 +50,33 @@ void deserializeJSON(const char* json_data, struct GameInfo* info) {
         return;
     }
 
-    cJSON *team1_json = cJSON_GetObjectItem(root, "team1");
-    cJSON *team2_json = cJSON_GetObjectItem(root, "team2");
+    cJSON *red_json = cJSON_GetObjectItem(root, "team1");
+    cJSON *blue_json = cJSON_GetObjectItem(root, "team2");
     cJSON *end_of_round_json = cJSON_GetObjectItem(root, "end_of_round");
 
-    if (team1_json && cJSON_IsObject(team1_json)) {
-        cJSON *score_json = cJSON_GetObjectItem(team1_json, "score");
-        cJSON *state_json = cJSON_GetObjectItem(team1_json, "state");
+    if (red_json && cJSON_IsObject(red_json)) {
+        cJSON *score_json = cJSON_GetObjectItem(red_json, "score");
+        cJSON *state_json = cJSON_GetObjectItem(red_json, "state");
 
         if (score_json && cJSON_IsNumber(score_json)) {
-            info->team1.score = score_json->valueint;
+            info->red.score = score_json->valueint;
         }
 
         if (state_json && cJSON_IsNumber(state_json)) {
-            info->team1.state = state_json->valueint;
+            info->red.state = state_json->valueint;
         }
     }
 
-    if (team2_json && cJSON_IsObject(team2_json)) {
-        cJSON *score_json = cJSON_GetObjectItem(team2_json, "score");
-        cJSON *state_json = cJSON_GetObjectItem(team2_json, "state");
+    if (blue_json && cJSON_IsObject(blue_json)) {
+        cJSON *score_json = cJSON_GetObjectItem(blue_json, "score");
+        cJSON *state_json = cJSON_GetObjectItem(blue_json, "state");
 
         if (score_json && cJSON_IsNumber(score_json)) {
-            info->team2.score = score_json->valueint;
+            info->blue.score = score_json->valueint;
         }
 
         if (state_json && cJSON_IsNumber(state_json)) {
-            info->team2.state = state_json->valueint;
+            info->blue.state = state_json->valueint;
         }
     }
     if (end_of_round_json && cJSON_IsBool(end_of_round_json)) {
@@ -106,8 +106,8 @@ void serializeJSON(BroadcastPacket* data, char* dst ){
 	    }
 
 	    cJSON_AddNumberToObject(json, "battery", data->batteryVoltage); // battery voltage
-	    cJSON_AddNumberToObject(json, "team1d", data->team0DeltaScore); // Team0 score delta
-	    cJSON_AddNumberToObject(json, "team2d", data->team1DeltaScore);
+	    cJSON_AddNumberToObject(json, "team1d", data->redDeltaScore);
+	    cJSON_AddNumberToObject(json, "team2d", data->blueDeltaScore);
 
 	    dst = cJSON_Print(json);
 	    cJSON_Delete(json);

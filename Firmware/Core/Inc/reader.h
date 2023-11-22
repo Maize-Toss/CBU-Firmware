@@ -14,7 +14,25 @@
 
 #define ARR_SIZE 8
 
-void calculateRawScore(uint8_t* teamRawScore, bool isTeam1);
+#define SEL0_GPIO_Port GPIOC
+#define SEL1_GPIO_Port GPIOC
+#define SEL2_GPIO_Port GPIOB
+#define SEL3_GPIO_Port GPIOB
+#define SEL4_GPIO_Port GPIOC
+#define SEL5_GPIO_Port GPIOC
+#define SEL6_GPIO_Port GPIOB
+#define SEL7_GPIO_Port GPIOB
+
+#define SEL0_Pin GPIO_PIN_2
+#define SEL1_Pin GPIO_PIN_1
+#define SEL2_Pin GPIO_PIN_15
+#define SEL3_Pin GPIO_PIN_14
+#define SEL4_Pin GPIO_PIN_7
+#define SEL5_Pin GPIO_PIN_6
+#define SEL6_Pin GPIO_PIN_13
+#define SEL7_Pin GPIO_PIN_12
+
+void calculateRawScore(uint8_t* teamRawScore, bool isBlue);
 
 typedef struct RFID_interface
 {
@@ -25,7 +43,12 @@ typedef struct RFID_interface
 } RFID_interface;
 
 typedef struct BeanBag_interface {
-	uint32_t uid;
+	uint64_t uid1;
+	uint64_t uid2;
+	uint64_t uid3;
+	uint64_t uid4;
+
+	bool detected = false;
 } BeanBag_interface;
 
 // global variable for RFID tag info to be tracked
@@ -39,10 +62,14 @@ extern uint8_t BagStatus[8];
 // returns nothing
 void BeanBag_setup();
 
+// Clears detected variable for all beanbags
+void BeanBag_clearDetected(void) {
+
 // find ID in array of BeanBag_interfaces
 // modifies nothing
-// returns index in array if found or -1 if not found
-int BeanBag_findIDinArray(const int id);
+// returns index (bag number) in array if found or -1 if not found
+// returns -2 if bag already detected
+int BeanBag_findIDinArray(st25r95_handle *handler);
 
 // initialize passed RFID reader
 // modifies RFID_interface

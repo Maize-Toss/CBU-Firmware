@@ -6,26 +6,34 @@
  */
 #include "reader.h"
 #include "stm32l4xx_hal.h"
+#include "st25r95.h"
 
-#define SEL_PORT GPIOB
-
-const uint16_t sel[8] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6, GPIO_PIN_7};
+#define READ_LENGTH 50 // 50 ms
 
 // global variable for RFID tag info to be tracked
 BeanBag_interface BagInfo[8];
 
 // global variable for tracking the status of each bag
+// Red (Team 1): 0-3; Blue (Team 2): 4-7
 uint8_t BagStatus[8] = {0,0,0,0,0,0,0,0};
 
-void calculateRawScore(uint8_t* teamRawScore, bool isTeam1) {
+// map of antenna number to point value
+const uint8_t ANT_POINTS_MAP[12] = {1,1,1,1, 3,3,3,3, 1,1,1,1};
+
+extern uint8_t select_rfid_channel(uint8_t channel_index);
+
+static const uint8_t UID_ZERO_CMP[UID_SIZE]; // auto-initialized to zero TODO test lol
+
+void calculateRawScore(uint8_t* teamRawScore, bool isBlue) {
 
 	uint8_t* bag_p = BagStatus;
 
-	if (isTeam1) bag_p +=4;
+	// Shift pointer to blue section of array
+	if (isBlue) bag_p += 4;
 
 	*teamRawScore = 0;
 
-	// Team 0 routine
+	// Score count routine
 	for (int i = 0; i < 4; ++i) {
 		*teamRawScore += bag_p[i];
 	}
@@ -33,20 +41,46 @@ void calculateRawScore(uint8_t* teamRawScore, bool isTeam1) {
 }
 
 // reads all RFID antenna regions and updates the global BagStatus array
-void RFID_readArray(void) {
+void RFID_readArray(st25r95_handle *handler) {
 
-	for(uint8_t row = 0; row < 3; row++){
-		// iterate through sel6 and sel7
-	    HAL_GPIO_WritePin(SEL_PORT, sel[6], (row >> 1) & 0b01);
-	    HAL_GPIO_WritePin(SEL_PORT, sel[7], (row & 0b01) );
+	clearBagsDetected();
 
-		for(uint8_t column = 0; column < 4; column++){
-			// iterate through each element in the row
-			HAL_GPIO_WritePin(SEL_PORT, sel[row*2], (column >> 1) & 0b01);
-			HAL_GPIO_WritePin(SEL_PORT, sel[row*2 + 1], (column & 0b01) );
+	for(uint8_t ant_number = 1; ant_number < 12; ant_number++){
+		st25r95_off(handler);
+		select_rfid_channel(ant_number);
 
-			// Now read from selected antenna
+		st25r95_idle(handler);
+		while ( xTaskGetTickCount() < startTick + pdMS_TO_TICKS(READ_LENGTH) ) {
+			memset(handler->uid, 0, sizeof(handler->uid)); // clear uid
+			st25r95_service(handler);
+
+			if ( memcmp(handler->uid, UID_ZERO_CMP, sizeof(handler->uid)) ) { // non-zero uid
+				int bag_number = getBagNumber(handler);
+
+				if (bag_number == -1) continue; // UID not found
+				else if (bag_number == -2) continue; // Bag already scanned
+
+				BagStatus[bag_number] = ANT_POINTS_MAP[ant_number - 1];
+			}
 
 		}
+
 	}
+
+}
+
+void BeanBag_setup(void) {
+
+}
+
+void BeanBag_clearDetected(void) {
+
+
+
+}
+
+int BeanBag_findIDinArray(st25r95_handle *handler) {
+
+
+
 }
