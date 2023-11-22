@@ -816,10 +816,9 @@ void StartDefaultTask(void *argument)
 		// send reply packet
 		broadcastPacket.team0DeltaScore = 2;
 		broadcastPacket.team0DeltaScore = 2;
-		serializeJSON(&broadcastPacket,tx_buffer);
-		HAL_UART_Transmit(&huart1,(uint8_t*)tx_buffer, strlen(json_string),5000);
+		serializeJSON(&broadcastPacket,(char*)tx_buffer);
+		HAL_UART_Transmit(&huart1,(uint8_t*)tx_buffer, strlen(tx_buffer),5000);
 //		osSemaphoreRelease(BluetoothRXHandle, osWaitForever);
-
 
 	}
 //	 HAL_UART_Receive(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
@@ -968,7 +967,7 @@ void StartBroadcastTask(void *argument)
 	{
 
 //		HAL_UART_Transmit(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
-//		vTaskDelayUntil( &xLastWakeTime, period );
+		vTaskDelayUntil( &xLastWakeTime, period );
 
 	}
 

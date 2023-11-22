@@ -109,7 +109,9 @@ void serializeJSON(BroadcastPacket* data, char* dst ){
 	    cJSON_AddNumberToObject(json, "team1d", data->team0DeltaScore); // Team0 score delta
 	    cJSON_AddNumberToObject(json, "team2d", data->team1DeltaScore);
 
-	    dst = cJSON_Print(json);
+	    char* temp = cJSON_PrintUnformatted(json);
+	    strncat (temp, "\n", 2);
+	    strcpy(dst, temp);
 	    cJSON_Delete(json);
 
 	    return dst;

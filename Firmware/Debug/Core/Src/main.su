@@ -16,8 +16,8 @@
 ../Core/Src/main.c:681:13:MX_DMA_Init	16	static
 ../Core/Src/main.c:699:13:MX_GPIO_Init	48	static
 ../Core/Src/main.c:789:6:StartDefaultTask	40	static
-../Core/Src/main.c:834:6:StartRFIDTask	32	static
-../Core/Src/main.c:877:6:StartBluetoothTask	24	static
-../Core/Src/main.c:904:6:StartBatteryTask	40	static
-../Core/Src/main.c:950:6:StartBroadcastTask	24	static
-../Core/Src/main.c:993:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:837:6:StartRFIDTask	32	static
+../Core/Src/main.c:880:6:StartBluetoothTask	24	static
+../Core/Src/main.c:908:6:StartBatteryTask	40	static
+../Core/Src/main.c:954:6:StartBroadcastTask	32	static
+../Core/Src/main.c:997:6:Error_Handler	4	static,ignoring_inline_asm
