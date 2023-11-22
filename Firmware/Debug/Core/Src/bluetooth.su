@@ -1,7 +1,0 @@
-../Core/Src/bluetooth.c:10:6:initBLE	16	static
-../Core/Src/bluetooth.c:14:6:setDeviceName	16	static
-../Core/Src/bluetooth.c:19:6:isConnected	16	static
-../Core/Src/bluetooth.c:25:10:connect	16	static
-../Core/Src/bluetooth.c:29:10:disconnect	16	static
-../Core/Src/bluetooth.c:34:6:readBLE	24	static
-../Core/Src/bluetooth.c:40:10:broadcast	24	static

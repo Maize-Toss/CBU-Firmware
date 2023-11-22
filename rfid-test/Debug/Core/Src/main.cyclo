@@ -1,0 +1,12 @@
+../Core/Src/main.c:84:6:select_switch_port	12
+../Core/Src/main.c:167:6:reader_irq_pulse	1
+../Core/Src/main.c:174:6:reader_nss	1
+../Core/Src/main.c:178:5:reader_tx	1
+../Core/Src/main.c:183:5:reader_rx	1
+../Core/Src/main.c:188:6:HAL_GPIO_EXTI_Callback	2
+../Core/Src/main.c:194:6:st25_card_callback	1
+../Core/Src/main.c:203:5:main	1
+../Core/Src/main.c:268:6:SystemClock_Config	4
+../Core/Src/main.c:313:13:MX_SPI1_Init	2
+../Core/Src/main.c:353:13:MX_GPIO_Init	1
+../Core/Src/main.c:423:6:Error_Handler	1

@@ -168,7 +168,7 @@ void reader_irq_pulse() {
   HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_RESET);
   HAL_Delay(1);
   HAL_GPIO_WritePin(RFID_NIRQ_IN_PORT, RFID_NIRQ_IN_PIN, GPIO_PIN_SET);
-  HAL_Delay(11);
+  HAL_Delay(100);
 }
 
 void reader_nss(uint8_t enable) {
@@ -180,8 +180,8 @@ int reader_tx(uint8_t *data, size_t len) {
   return ret;
 }
 
-int reader_rx(uint8_t *data, size_t len) {
-  int ret = HAL_SPI_Receive(&hspi1, data, len, HAL_MAX_DELAY);
+int reader_rx(uint8_t *data, size_t len, uint32_t delay) {
+  int ret = HAL_SPI_Receive(&hspi1, data, len, delay);
   return ret;
 }
 

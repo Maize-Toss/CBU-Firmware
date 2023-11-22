@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "stm32l452xx.h"
+#include "stm32l4xx_hal.h"
 
 #ifndef __weak
 #define __weak   __attribute__((weak))
@@ -133,7 +134,7 @@ typedef void (*st25r95_nss)(uint8_t);
 
 typedef void (*st25r95_tx)(uint8_t *, size_t);
 
-typedef void (*st25r95_rx)(uint8_t *, size_t);
+typedef int (*st25r95_rx)(uint8_t *, size_t, uint32_t);
 
 typedef void (*st25r95_irq_pulse)();
 

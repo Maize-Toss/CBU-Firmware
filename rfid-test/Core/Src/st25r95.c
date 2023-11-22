@@ -44,14 +44,48 @@ uint8_t *st25r95_response(st25r95_handle *handler) {
   static uint8_t rx_data[256];
   handler->nss(1);
   st25r95_spi_byte(handler, ST25_READ);
-  handler->rx(rx_data, 1);
+  handler->rx(rx_data, 1, HAL_MAX_DELAY);
   if (rx_data[0] == ST25_ECHO)
   {
     handler->nss(0);
     return rx_data;
   }
-  handler->rx(rx_data + 1, 1);
-  handler->rx(rx_data + 2, *(rx_data + 1));
+  handler->rx(rx_data + 1, 1, HAL_MAX_DELAY);
+  handler->rx(rx_data + 2, *(rx_data + 1), HAL_MAX_DELAY);
+  handler->nss(0);
+  return rx_data;
+}
+
+uint8_t *st25r95_response_with_reset(st25r95_handle *handler) {
+  while (handler->irq_flag == 0);
+  handler->irq_flag = 0;
+  static uint8_t rx_data[256];
+  handler->nss(1);
+  st25r95_spi_byte(handler, ST25_READ);
+  int ret = handler->rx(rx_data, 1, 1000);
+  if (ret == HAL_TIMEOUT) {
+	  // Stuck waiting for response, reset system
+	  NVIC_SystemReset();
+  }
+
+  if (rx_data[0] == ST25_ECHO)
+  {
+    handler->nss(0);
+    return rx_data;
+  }
+
+  ret = handler->rx(rx_data + 1, 1, 1000);
+  if (ret == HAL_TIMEOUT) {
+  	  // Stuck waiting for response, reset system
+  	  NVIC_SystemReset();
+  }
+
+  ret = handler->rx(rx_data + 2, *(rx_data + 1), 1000);
+  if (ret == HAL_TIMEOUT) {
+  	  // Stuck waiting for response, reset system
+  	  NVIC_SystemReset();
+  }
+
   handler->nss(0);
   return rx_data;
 }
@@ -146,7 +180,7 @@ st25r95_status_t st25r95_15693(st25r95_handle *handler) {
 
   handler->protocol = ST25_PROTOCOL_15693;
 
-  uint8_t *res = st25r95_response(handler);
+  uint8_t *res = st25r95_response_with_reset(handler);
   return res[0];
 }
 
@@ -384,7 +418,7 @@ void st25r95_idle(st25r95_handle *handler) {
   tx_buffer[0] = ST25_SEND;
   tx_buffer[1] = ST25_IDLE;
   tx_buffer[2] = 0x0E;
-  tx_buffer[3] = ST25_WU_SRC_TagDetection;
+  tx_buffer[3] = 0b00001011;
   tx_buffer[4] = ST25_EC_TagDetection >> 8;
   tx_buffer[5] = ST25_EC_TagDetection & 0xFF;
   tx_buffer[6] = ST25_WU_CTRL_TagDetection >> 8;

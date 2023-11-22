@@ -1,6 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
-# Toolchain: GNU Tools for STM32 (10.3-2021.10)
+# Toolchain: GNU Tools for STM32 (11.3.rel1)
 ################################################################################
 
 -include ../makefile.init
@@ -64,8 +64,8 @@ all: main-build
 main-build: CBU-Firmware.elf secondary-outputs
 
 # Tool invocations
-CBU-Firmware.elf CBU-Firmware.map: $(OBJS) $(USER_OBJS) C:\Users\evanm\Documents\Michigan\eecs473\Project\CBU-Firmware\Firmware\STM32L452RETXP_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "CBU-Firmware.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\evanm\Documents\Michigan\eecs473\Project\CBU-Firmware\Firmware\STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="CBU-Firmware.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+CBU-Firmware.elf CBU-Firmware.map: $(OBJS) $(USER_OBJS) C:\Users\jlvmi\OneDrive\University\ of\ Michigan\Academics\12.\ Fall\ 2023\EECS\ 473\Project\CBU-Firmware\Firmware\STM32L452RETXP_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "CBU-Firmware.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\jlvmi\OneDrive\University of Michigan\Academics\12. Fall 2023\EECS 473\Project\CBU-Firmware\Firmware\STM32L452RETXP_FLASH.ld" --specs=nosys.specs -Wl,-Map="CBU-Firmware.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
