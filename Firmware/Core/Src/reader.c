@@ -6,7 +6,7 @@
  */
 #include "reader.h"
 
-#define READ_LENGTH 50 // 50 ms
+#define READ_LENGTH 2000 // 50 ms
 
 // global variable for RFID tag info to be tracked
 BeanBag_interface BagInfo[NUM_BAGS] = {
@@ -57,7 +57,7 @@ void RFID_readArray(st25r95_handle *handler) {
 	for(uint8_t ant_number = 1; ant_number < 12; ant_number++){
 		if (!ANT_ENABLED[ant_number-1]) continue; // ANT not plugged in, don't waste your time
 
-		st25r95_off(handler);
+//		st25r95_off(handler);
 		select_rfid_channel(ant_number);
 
 		TickType_t startTick = xTaskGetTickCount();
