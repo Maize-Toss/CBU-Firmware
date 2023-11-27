@@ -40,8 +40,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define RFID_READ_PERIOD_MS 100
-#define BROADCAST_PERIOD_MS 200
+#define RFID_READ_PERIOD_MS 500
+#define BROADCAST_PERIOD_MS 1000
 #define RECEIVE_PERIOD_MS 200
 #define BAT_READ_PERIOD_MS 30000
 #define VBAT_CONVERSION_FACTOR (float) 3 * 3.3 / 4096 // VBat/3 = rawADC_IN18 * VREF / 2^12
@@ -110,7 +110,7 @@ osThreadId_t readRFIDTaskHandle;
 const osThreadAttr_t readRFIDTask_attributes = {
   .name = "readRFIDTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal1,
+  .priority = (osPriority_t) osPriorityHigh2,
 };
 /* Definitions for BluetoothRXTask */
 osThreadId_t BluetoothRXTaskHandle;
@@ -320,22 +320,22 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
-	/* Setup all protocol */
-	reader_handler.protocol = ST25_PROTOCOL_15693;
-	reader_handler.tx_speed = ST25_26K_106K; // datarate
-	reader_handler.rx_speed = ST25_26K_106K; // same for up and downlinks
-	reader_handler.timerw = 0x58;
-	reader_handler.ARC = 0xD1;
-	reader_handler.irq_flag = 0;
+  /* Setup all protocol */
+  reader_handler.protocol = ST25_PROTOCOL_15693;
+  reader_handler.tx_speed = ST25_26K_106K; // datarate
+  reader_handler.rx_speed = ST25_26K_106K; // same for up and downlinks
+  reader_handler.timerw = 0x58;
+  reader_handler.ARC = 0xD1;
+  reader_handler.irq_flag = 0;
 
-	/* Bind BSP Functions */
-	reader_handler.nss = reader_nss;
-	reader_handler.tx = reader_tx;
-	reader_handler.rx = reader_rx;
-	reader_handler.irq_pulse = reader_irq_pulse;
-	reader_handler.callback = st25_card_callback;
+  /* Bind BSP Functions */
+  reader_handler.nss = reader_nss;
+  reader_handler.tx = reader_tx;
+  reader_handler.rx = reader_rx;
+  reader_handler.irq_pulse = reader_irq_pulse;
+  reader_handler.callback = st25_card_callback;
 
-	BeanBag_setup();
+  BeanBag_setup();
 
   /* USER CODE END 2 */
 
@@ -398,13 +398,13 @@ int main(void)
 	ble.mutex = &BluetoothRXHandle;
 
 
-	st25r95_init(&reader_handler);
-	st25r95_calibrate(&reader_handler);
+//	st25r95_init(&reader_handler);
+//	st25r95_calibrate(&reader_handler);
 
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
-  //osKernelStart();
+  osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
@@ -551,7 +551,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -759,29 +759,22 @@ void StartDefaultTask(void *argument)
 	int ret;
 	int count = 0;
 	memset(rx_buffer, 0, RX_BUFF_SIZE);
-//  char* json_string = "ICE SPICE \n";
 	char *json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
 
 	for (;;) {
-		ret = HAL_UART_Receive(&huart1, rx_buffer, RX_BUFF_SIZE, 5000); // Sending in normal mode
+//		ret = HAL_UART_Receive(&huart1, rx_buffer, RX_BUFF_SIZE, 5000); // Sending in normal mode
+		ret = HAL_UART_Receive(&huart1, rx_buffer, RX_BUFF_SIZE, 500); // Sending in normal mode
+
 		if (ret == HAL_OK) {
 			// deserialize packet
 			deserializeJSON((char*) rx_buffer, &gameInfo);
-
-//		if (gameInfo.end_of_round) {
-//			// do some other stuff
-//		}
-
 			// send reply packet
 			broadcastPacket.redDeltaScore = 2;
 			broadcastPacket.blueDeltaScore = 2;
 			serializeJSON(&broadcastPacket, (char*) tx_buffer);
 			HAL_UART_Transmit(&huart1, (uint8_t*) tx_buffer, strlen(tx_buffer),
 					5000);
-//		osSemaphoreRelease(BluetoothRXHandle, osWaitForever);
-
 		}
-//	 HAL_UART_Receive(&huart1,(uint8_t*)json_string, strlen(json_string),5000);
 		vTaskDelayUntil(&xLastWakeTime, period);
 	}
   /* USER CODE END 5 */
@@ -797,8 +790,8 @@ void StartDefaultTask(void *argument)
 void StartRFIDTask(void *argument)
 {
   /* USER CODE BEGIN StartRFIDTask */
-	st25r95_init(&reader_handler);
-	st25r95_calibrate(&reader_handler);
+	st25r95_init((st25r95_handle *)&reader_handler);
+	st25r95_calibrate((st25r95_handle *)&reader_handler);
 
 	TickType_t xLastWakeTime;
 	const TickType_t period = pdMS_TO_TICKS(RFID_READ_PERIOD_MS);
