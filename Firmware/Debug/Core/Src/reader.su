@@ -1,5 +1,5 @@
 ../Core/Src/reader.c:36:6:calculateRawScore	24	static
 ../Core/Src/reader.c:53:6:RFID_readArray	32	static
-../Core/Src/reader.c:82:6:BeanBag_setup	8	static
-../Core/Src/reader.c:88:6:BeanBag_clearDetected	16	static
-../Core/Src/reader.c:95:5:BeanBag_findIDinArray	32	static
+../Core/Src/reader.c:83:6:BeanBag_setup	8	static
+../Core/Src/reader.c:89:6:BeanBag_clearDetected	16	static
+../Core/Src/reader.c:96:5:BeanBag_findIDinArray	32	static
