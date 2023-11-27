@@ -60,10 +60,11 @@ void RFID_readArray(st25r95_handle *handler) {
 //		st25r95_off(handler);
 		select_rfid_channel(ant_number);
 
-		TickType_t startTick = xTaskGetTickCount();
+//		TickType_t startTick = xTaskGetTickCount();
 
-		st25r95_idle(handler);
-		while ( xTaskGetTickCount() < startTick + pdMS_TO_TICKS(READ_LENGTH) ) {
+//		st25r95_idle(handler);
+//		while ( xTaskGetTickCount() < startTick + pdMS_TO_TICKS(READ_LENGTH) ) {
+  		for (int i = 0; i < 500; ++i) {
 			memset(handler->uid, 0, sizeof(handler->uid)); // clear uid
 			st25r95_service(handler);
 

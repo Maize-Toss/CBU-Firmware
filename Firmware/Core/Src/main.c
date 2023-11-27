@@ -150,6 +150,20 @@ uint8_t tx_buffer[TX_BUFF_SIZE] = { 0 };
 
 GameInfo gameInfo = { { 0, 0 }, { 0, 0 }, 0 };
 
+// global variable for RFID tag info to be tracked
+BeanBag_interface BagInfo[NUM_BAGS] = {
+		{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, false}, // Red 1
+		{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, false}, // Red 2
+		{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, false}, // Red 3
+		{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, false}, // Red 4
+		{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, false}, // Blue 1
+		{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, false}, // Blue 2
+		{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, false}, // Blue 3
+		{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, false}, // Blue 4
+};
+
+const bool ANT_ENABLED[12] = {1,1,1,1, 0,0,0,0, 1,1,1,1};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -397,14 +411,10 @@ int main(void)
 	ble.name = CBU_ID;
 	ble.mutex = &BluetoothRXHandle;
 
-
-	st25r95_init(&reader_handler);
-	st25r95_calibrate(&reader_handler);
-
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
-  //osKernelStart();
+  osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
@@ -415,7 +425,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 
-		RFID_readArray(&reader_handler);
+		//RFID_readArray(&reader_handler);
 	}
   /* USER CODE END 3 */
 }
