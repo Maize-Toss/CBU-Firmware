@@ -153,6 +153,7 @@ typedef struct {
   uint8_t ARC;
   uint8_t uid[UID_SIZE];
   volatile uint8_t irq_flag;
+  volatile uint8_t timeout_flag;
   /* BSP Functions */
   st25r95_callback callback;
   st25r95_nss nss;

@@ -102,12 +102,13 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart1_tx;
 
 /* Definitions for BluetoothTXRX_T */
 osThreadId_t BluetoothTXRX_THandle;
 const osThreadAttr_t BluetoothTXRX_T_attributes = {
   .name = "BluetoothTXRX_T",
-  .stack_size = 128 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for readRFIDTask */
@@ -151,7 +152,7 @@ uint8_t tx_buffer[TX_BUFF_SIZE] = { 0 };
 
 GameInfo gameInfo = { { 0, 0 }, { 0, 0 }, 0 };
 
-const int TIMER_PERIOD_MS = 1000;
+const int TIMER_PERIOD_MS = 250;
 
 int DMA_RX = 0;
 
@@ -293,16 +294,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin) {
 	if (pin == RFID_NIRQ_OUT_PIN) {
 		reader_handler.irq_flag = 1;
 
-		if (reader_handler.state == ST25_STATE_IDLE) { // discard init state events
-			BaseType_t ret = xQueueSendFromISR(xRFIDEventQueueHandle, &readEvent, &xHigherPriorityTaskWoken);
-			if (ret != pdTRUE) {
-				errorCounter++;
-			}
-
-			portYIELD_FROM_ISR (xHigherPriorityTaskWoken);
-		}
-	} else if (pin == BLE_RX_Pin) {
-		for (volatile int i = 0; i < 10; ++i);
+//		if (reader_handler.state == ST25_STATE_IDLE) { // discard init state events
+//			BaseType_t ret = xQueueSendFromISR(xRFIDEventQueueHandle, &readEvent, &xHigherPriorityTaskWoken);
+//			if (ret != pdTRUE) {
+//				errorCounter++;
+//			}
+//
+//			portYIELD_FROM_ISR (xHigherPriorityTaskWoken);
+//		}
 	}
 }
 
@@ -684,6 +683,7 @@ static void MX_DMA_Init(void)
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
+  __HAL_RCC_DMA2_CLK_ENABLE();
 
   /* DMA interrupt init */
   /* DMA1_Channel1_IRQn interrupt configuration */
@@ -692,6 +692,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
+  /* DMA2_Channel6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Channel6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Channel6_IRQn);
 
 }
 
@@ -813,8 +816,10 @@ void StartBluetoothTask(void *argument)
 				//broadcastPacket.redDeltaScore = 2;
 				broadcastPacket.blueDeltaScore = 3;
 				serializeJSON(&broadcastPacket, (char*) tx_buffer);
-				HAL_UART_Transmit(&huart1, (uint8_t*) tx_buffer, TX_BUFF_SIZE,
-						5000);
+				HAL_UART_Transmit_DMA(&huart1, (uint8_t*) tx_buffer, TX_BUFF_SIZE);
+
+//				osTimerStop(RFIDTimeoutHandle);
+//				osTimerStart(RFIDTimeoutHandle, pdMS_TO_TICKS(TIMER_PERIOD_MS));
 
 			//vPortExitCritical();
 			//}
@@ -847,7 +852,7 @@ void StartRFIDTask(void *argument)
 
 	uint8_t tx_buf[2];
 
-	xQueueReset(xRFIDEventQueueHandle);
+	//xQueueReset(xRFIDEventQueueHandle);
 
 	st25r95_idle((st25r95_handle *)&reader_handler);
 
@@ -911,17 +916,19 @@ void StartBatteryTask(void *argument)
 void RFIDTimeoutCallback(void *argument)
 {
   /* USER CODE BEGIN RFIDTimeoutCallback */
-	static int errorCounter = 0;
+//	static int errorCounter = 0;
+//
+//	/* We have not woken a task at the start of the ISR. */
+//	xHigherPriorityTaskWoken = pdFALSE;
+//
+//	BaseType_t ret = xQueueSendFromISR(xRFIDEventQueueHandle, &timeoutEvent, &xHigherPriorityTaskWoken);
+//	if (ret != pdTRUE) {
+//		errorCounter++;
+//	}
+//
+//	portYIELD_FROM_ISR (xHigherPriorityTaskWoken);
 
-	/* We have not woken a task at the start of the ISR. */
-	xHigherPriorityTaskWoken = pdFALSE;
-
-	BaseType_t ret = xQueueSendFromISR(xRFIDEventQueueHandle, &timeoutEvent, &xHigherPriorityTaskWoken);
-	if (ret != pdTRUE) {
-		errorCounter++;
-	}
-
-	portYIELD_FROM_ISR (xHigherPriorityTaskWoken);
+	reader_handler.timeout_flag = 1;
   /* USER CODE END RFIDTimeoutCallback */
 }
 

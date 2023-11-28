@@ -72,18 +72,16 @@ void RFID_readArray(st25r95_handle *handler) {
 
 		for(;;) {
 		    /* Wait until there is something to do. */
-			BaseType_t ret = xQueueReceive( xRFIDEventQueueHandle, &xRFIDEvent, osWaitForever );
-			if (ret != pdTRUE) {
-				errorCounter++;
-			}
+//			BaseType_t ret = xQueueReceive( xRFIDEventQueueHandle, &xRFIDEvent, osWaitForever );
+//			if (ret != pdTRUE) {
+//				errorCounter++;
+//			}
 
-		    /* Perform a different action for each event type. */
-		    if (xRFIDEvent == EVENT_READ) {
-		    	memset(handler->uid, 0, sizeof(handler->uid)); // clear uid
+			if (handler->irq_flag) {
 
-		    	st25r95_service(handler);
+				memset(handler->uid, 0, sizeof(handler->uid)); // clear uid
 
-		    	//xQueueReset(xRFIDEventQueueHandle);
+				st25r95_service(handler);
 
 				if ( memcmp(handler->uid, UID_ZERO_CMP, sizeof(handler->uid)) ) { // check for non-zero uid, returns 0 if same
 					int bag_number = BeanBag_findIDinArray(handler);
@@ -93,16 +91,46 @@ void RFID_readArray(st25r95_handle *handler) {
 
 					BagStatus[bag_number] = ANT_POINTS_MAP[ant_number - 1];
 				}
-		    } else if (xRFIDEvent == EVENT_TIMEOUT) {
-		    	xQueueReset(xRFIDEventQueueHandle);
 
-		    	HAL_GPIO_WritePin(GPIOB, 1 << 4, 0);
+			}
 
-		    	osTimerStop(RFIDTimeoutHandle);
-		    	osTimerStart(RFIDTimeoutHandle, pdMS_TO_TICKS(TIMER_PERIOD_MS));
+			if (handler->timeout_flag) {
+				handler->timeout_flag = 0;
 
-		    	break;
-		    }
+				HAL_GPIO_WritePin(GPIOB, 1 << 4, 0);
+
+				osTimerStop(RFIDTimeoutHandle);
+				osTimerStart(RFIDTimeoutHandle, pdMS_TO_TICKS(TIMER_PERIOD_MS));
+
+				break;
+			}
+
+//		    /* Perform a different action for each event type. */
+//		    if (xRFIDEvent == EVENT_READ) {
+//		    	memset(handler->uid, 0, sizeof(handler->uid)); // clear uid
+//
+//		    	st25r95_service(handler);
+//
+//		    	//xQueueReset(xRFIDEventQueueHandle);
+//
+//				if ( memcmp(handler->uid, UID_ZERO_CMP, sizeof(handler->uid)) ) { // check for non-zero uid, returns 0 if same
+//					int bag_number = BeanBag_findIDinArray(handler);
+//
+//					if (bag_number == -1) continue; // UID not found
+//					else if (bag_number == -2) continue; // Bag already scanned
+//
+//					BagStatus[bag_number] = ANT_POINTS_MAP[ant_number - 1];
+//				}
+//		    } else if (xRFIDEvent == EVENT_TIMEOUT) {
+//		    	xQueueReset(xRFIDEventQueueHandle);
+//
+//		    	HAL_GPIO_WritePin(GPIOB, 1 << 4, 0);
+//
+//		    	osTimerStop(RFIDTimeoutHandle);
+//		    	osTimerStart(RFIDTimeoutHandle, pdMS_TO_TICKS(TIMER_PERIOD_MS));
+//
+//		    	break;
+//		    }
 		}
 	}
 }
