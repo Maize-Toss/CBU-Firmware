@@ -35,6 +35,15 @@
 #define SEL6_Pin GPIO_PIN_13
 #define SEL7_Pin GPIO_PIN_12
 
+extern osMessageQueueId_t xRFIDEventQueueHandle;
+extern osTimerId_t RFIDTimeoutHandle;
+extern const int TIMER_PERIOD_MS;
+
+typedef enum {
+    EVENT_TIMEOUT = 0,
+    EVENT_READ,
+} RFIDEvent_t;
+
 void calculateRawScore(uint8_t* teamRawScore, bool isBlue);
 
 typedef struct RFID_interface

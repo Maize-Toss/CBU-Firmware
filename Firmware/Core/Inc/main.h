@@ -71,10 +71,18 @@ void Error_Handler(void);
 #define NIRQ_OUT_Pin GPIO_PIN_11
 #define NIRQ_OUT_GPIO_Port GPIOB
 #define NIRQ_OUT_EXTI_IRQn EXTI15_10_IRQn
+#define BLE_TX_Pin GPIO_PIN_9
+#define BLE_TX_GPIO_Port GPIOA
+#define BLE_RX_Pin GPIO_PIN_10
+#define BLE_RX_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
+#define LED0_Pin GPIO_PIN_4
+#define LED0_GPIO_Port GPIOB
+#define LED1_Pin GPIO_PIN_5
+#define LED1_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

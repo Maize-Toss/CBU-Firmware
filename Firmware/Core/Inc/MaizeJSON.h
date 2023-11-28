@@ -26,7 +26,7 @@ typedef struct GameInfo {
 
 
 typedef struct BroadcastPacket {
-	uint32_t batteryVoltage;
+	float batteryVoltage;
 	uint32_t redDeltaScore;
 	uint32_t blueDeltaScore;
 } BroadcastPacket;

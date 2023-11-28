@@ -127,6 +127,7 @@ typedef enum {
 typedef enum {
   ST25_STATE_NORMAL,
   ST25_STATE_IDLE,
+  ST25_STATE_INIT,
 } st25r95_state_t;
 
 typedef void (*st25r95_nss)(uint8_t);
@@ -139,7 +140,7 @@ typedef void (*st25r95_irq_pulse)();
 
 typedef void (*st25r95_callback)(uint8_t *);
 
-#define UID_SIZE 10
+#define UID_SIZE 8
 
 typedef struct {
   /* Reader state and variables */
@@ -162,6 +163,8 @@ typedef struct {
 
 void st25r95_init(st25r95_handle *);
 
+void st25r95_init_poll(st25r95_handle *);
+
 void st25r95_reset(st25r95_handle *);
 
 st25r95_status_t st25r95_IDN(st25r95_handle *);
@@ -171,6 +174,8 @@ st25r95_status_t st25r95_off(st25r95_handle *);
 st25r95_status_t st25r95_14443A(st25r95_handle *);
 
 st25r95_status_t st25r95_15693(st25r95_handle *);
+
+st25r95_status_t st25r95_15693_poll(st25r95_handle *);
 
 st25r95_status_t st25r95_read_reg(st25r95_handle *, uint8_t, uint8_t *);
 

@@ -44,7 +44,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-extern osSemaphoreId_t BluetoothRXHandle;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,7 +59,32 @@ extern osSemaphoreId_t BluetoothRXHandle;
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_adc1;
+extern DMA_HandleTypeDef hdma_usart1_rx;
+extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
+
+void pop_registers_from_fault_stack(unsigned int * hardfault_args)
+{
+unsigned int stacked_r0;
+unsigned int stacked_r1;
+unsigned int stacked_r2;
+unsigned int stacked_r3;
+unsigned int stacked_r12;
+unsigned int stacked_lr;
+unsigned int stacked_pc;
+unsigned int stacked_psr;
+    stacked_r0 = ((unsigned long) hardfault_args[0]);
+    stacked_r1 = ((unsigned long) hardfault_args[1]);
+    stacked_r2 = ((unsigned long) hardfault_args[2]);
+    stacked_r3 = ((unsigned long) hardfault_args[3]);
+    stacked_r12 = ((unsigned long) hardfault_args[4]);
+    stacked_lr = ((unsigned long) hardfault_args[5]);
+    stacked_pc = ((unsigned long) hardfault_args[6]);
+    stacked_psr = ((unsigned long) hardfault_args[7]);
+    /* Inspect stacked_pc to locate the offending instruction. */
+    for( ;; );
+}
+
 
 /* USER CODE END EV */
 
@@ -88,6 +113,16 @@ void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
 
+	__asm volatile (
+	    "tst lr, #4\n\t"
+	    "ite eq\n\t"
+	    "mrseq r0, msp\n\t"
+	    "mrsne r0, psp\n\t"
+	    "ldr r1, [r0, #24]\n\t"
+	    "ldr r2, =pop_registers_from_fault_stack\n\t"
+	    "bx r2\n\t"
+	    //handler2_address_const: .word
+	        );
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -195,6 +230,34 @@ void DMA1_Channel1_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
 
   /* USER CODE END DMA1_Channel1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA1 channel5 global interrupt.
+  */
+void DMA1_Channel5_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel5_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel5_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart1_rx);
+  /* USER CODE BEGIN DMA1_Channel5_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel5_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USART1 global interrupt.
+  */
+void USART1_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART1_IRQn 0 */
+
+  /* USER CODE END USART1_IRQn 0 */
+  HAL_UART_IRQHandler(&huart1);
+  /* USER CODE BEGIN USART1_IRQn 1 */
+
+  /* USER CODE END USART1_IRQn 1 */
 }
 
 /**

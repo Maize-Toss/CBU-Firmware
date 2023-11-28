@@ -169,6 +169,7 @@ standard names. */
 
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
+#define configIDLE_SHOULD_YIELD  1
 /* USER CODE END Defines */
 
 #endif /* FREERTOS_CONFIG_H */
