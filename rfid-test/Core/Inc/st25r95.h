@@ -149,7 +149,8 @@ typedef struct {
   st25r95_rate_t rx_speed;
   uint8_t timerw;
   uint8_t ARC;
-  uint8_t uid[10];
+  uint8_t uid[64][10]; // list of UIDs
+  uint8_t num_uids;
   volatile uint8_t irq_flag;
   /* BSP Functions */
   st25r95_callback callback;
@@ -191,9 +192,11 @@ uint8_t st25r95_14443A_detect(st25r95_handle *);
 
 uint8_t st25r95_15693_inventory1(st25r95_handle *);
 
-uint8_t st25r95_15693_inventory16(st25r95_handle *);
+void st25r95_15693_inventory16(st25r95_handle *, uint8_t, uint64_t);
 
-uint8_t st25r95_15693_detect(st25r95_handle *);
+uint8_t st25r95_15693_anticollision(st25r95_handle *handler);
+
+uint8_t st25r95_find_UID(uint8_t [10], uint8_t [64][10]);
 
 void st25r95_idle(st25r95_handle *);
 
