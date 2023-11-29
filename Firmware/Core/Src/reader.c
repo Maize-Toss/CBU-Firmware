@@ -12,7 +12,7 @@
 // global variable for RFID tag info to be tracked
 //0x0050510800505100
 BeanBag_interface BagInfo[NUM_BAGS] = {
-		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false}, // Red 1
+		{{0xE0040150B8F856E2, 0xE0040150B8F854BB, 0xE0040150B8F854DB, 0xE0040150B8F74A4F}, false}, // Red 1
 		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false}, // Red 2
 		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false}, // Red 3
 		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false}, // Red 4
@@ -63,7 +63,7 @@ void RFID_readArray(st25r95_handle *handler) {
 
 	RFIDEvent_t xRFIDEvent;
 
-	for(uint8_t ant_number = 1; ant_number <= 1; ant_number++){
+	for(uint8_t ant_number = 1; ant_number <= 12; ant_number++){
 		if (!ANT_ENABLED[ant_number-1]) continue; // ANT not plugged in, don't waste your time
 
 		select_rfid_channel(ant_number);

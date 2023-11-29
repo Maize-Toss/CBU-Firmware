@@ -76,13 +76,6 @@
 #define SEL6_Pin GPIO_PIN_13
 #define SEL7_Pin GPIO_PIN_12
 
-#define RFID_CS_PORT GPIOA
-#define RFID_CS_PIN GPIO_PIN_4
-#define RFID_NIRQ_IN_PORT GPIOC
-#define RFID_NIRQ_IN_PIN GPIO_PIN_4
-#define RFID_NIRQ_OUT_PORT GPIOB
-#define RFID_NIRQ_OUT_PIN GPIO_PIN_11
-
 #ifndef configASSERT
 	#define configASSERT ( x )     if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); for( ;; ); }
 #endif

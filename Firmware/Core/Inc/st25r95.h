@@ -12,6 +12,13 @@
 #define __weak   __attribute__((weak))
 #endif
 
+#define RFID_CS_PORT GPIOA
+#define RFID_CS_PIN GPIO_PIN_4
+#define RFID_NIRQ_IN_PORT GPIOC
+#define RFID_NIRQ_IN_PIN GPIO_PIN_4
+#define RFID_NIRQ_OUT_PORT GPIOB
+#define RFID_NIRQ_OUT_PIN GPIO_PIN_11
+
 #define UID_SIZE_15693 8
 #define UID_SIZE_14443A 10
 
@@ -131,13 +138,14 @@ typedef enum {
 typedef enum {
   ST25_STATE_NORMAL,
   ST25_STATE_IDLE,
+  ST25_STATE_INIT
 } st25r95_state_t;
 
 typedef void (*st25r95_nss)(uint8_t);
 
 typedef void (*st25r95_tx)(uint8_t *, size_t);
 
-typedef int (*st25r95_rx)(uint8_t *, size_t, uint32_t);
+typedef void (*st25r95_rx)(uint8_t *, size_t);
 
 typedef void (*st25r95_irq_pulse)();
 
@@ -166,6 +174,8 @@ typedef struct {
 
 void st25r95_init(st25r95_handle *);
 
+void st25r95_init_poll(st25r95_handle *);
+
 void st25r95_reset(st25r95_handle *);
 
 st25r95_status_t st25r95_IDN(st25r95_handle *);
@@ -175,6 +185,8 @@ st25r95_status_t st25r95_off(st25r95_handle *);
 st25r95_status_t st25r95_14443A(st25r95_handle *);
 
 st25r95_status_t st25r95_15693(st25r95_handle *);
+
+st25r95_status_t st25r95_15693_poll(st25r95_handle *);
 
 st25r95_status_t st25r95_read_reg(st25r95_handle *, uint8_t, uint8_t *);
 
@@ -203,8 +215,6 @@ void st25r95_15693_quiet(st25r95_handle *, uint8_t [8]);
 void st25r95_15693_resetToReady(st25r95_handle *, uint8_t [8]);
 
 void st25r95_15693_anticolSim(st25r95_handle *);
-
-uint8_t st25r95_find_UID(uint8_t [10], uint8_t [64][10]);
 
 void st25r95_idle(st25r95_handle *);
 
