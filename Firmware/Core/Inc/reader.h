@@ -15,6 +15,13 @@
 
 #include "cmsis_os.h"
 
+// Anticollision "switch"
+// 0 = off, 1 = on
+// turning anticollision off can allow you
+// to read the UID of a single tag
+// to record for anticollision purposes
+#define ANTICOL_15693 1
+
 #define NUM_BAGS 8
 #define NUM_TAGS_PER_BAG 4
 
@@ -36,6 +43,13 @@
 #define SEL6_Pin GPIO_PIN_13
 #define SEL7_Pin GPIO_PIN_12
 
+#define RFID_CS_PORT GPIOA
+#define RFID_CS_PIN GPIO_PIN_4
+#define RFID_NIRQ_IN_PORT GPIOC
+#define RFID_NIRQ_IN_PIN GPIO_PIN_4
+#define RFID_NIRQ_OUT_PORT GPIOB
+#define RFID_NIRQ_OUT_PIN GPIO_PIN_11
+
 extern osMessageQueueId_t xRFIDEventQueueHandle;
 extern osTimerId_t RFIDTimeoutHandle;
 extern const int TIMER_PERIOD_MS;
@@ -55,14 +69,11 @@ typedef struct RFID_interface
 	bool isSideA; // sideA or sideB of the court
 } RFID_interface;
 
-typedef struct BeanBag_interface {
-//	uint64_t uid1;
-//	uint64_t uid2;
-//	uint64_t uid3;
-//	uint64_t uid4;
+typedef struct BeanBag_interface
+{
 	uint64_t uid[NUM_TAGS_PER_BAG];
-
 	bool detected;
+	int ant_channel;
 } BeanBag_interface;
 
 // global variable for RFID tag info to be tracked

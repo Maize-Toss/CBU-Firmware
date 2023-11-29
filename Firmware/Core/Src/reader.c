@@ -12,14 +12,14 @@
 // global variable for RFID tag info to be tracked
 //0x0050510800505100
 BeanBag_interface BagInfo[NUM_BAGS] = {
-		{{0xE0040150B8F856E2, 0xE0040150B8F854BB, 0xE0040150B8F854DB, 0xE0040150B8F74A4F}, false}, // Red 1
-		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false}, // Red 2
-		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false}, // Red 3
-		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false}, // Red 4
-		{{0xE0040150B8F819C7, 0xE0040150B8F85760, 0xE0040150B8F8173A, 0xE0040150B8F8545C}, false}, // Blue 1
-		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false}, // Blue 2
-		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false}, // Blue 3
-		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false}, // Blue 4
+		{{0xE0040150B8F856E2, 0xE0040150B8F854BB, 0xE0040150B8F854DB, 0xE0040150B8F74A4F}, false, -1}, // Red 1
+		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false, -1}, // Red 2
+		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false, -1}, // Red 3
+		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false, -1}, // Red 4
+		{{0xE0040150B8F819C7, 0xE0040150B8F85760, 0xE0040150B8F8173A, 0xE0040150B8F8545C}, false, -1}, // Blue 1
+		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0xE0040150B8F85FFF}, false, -1}, // Blue 2
+		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false, -1}, // Blue 3
+		{{0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000}, false, -1}, // Blue 4
 };
 
 const bool ANT_ENABLED[12] = {1,1,1,1, 1,1,1,1, 1,1,1,1};
@@ -34,9 +34,6 @@ const uint8_t ANT_POINTS_MAP[12] = {1,1,1,1, 1,1,1,1, 1,1,1,1};
 extern uint8_t select_rfid_channel(uint8_t channel_index);
 
 static const uint8_t UID_ZERO_CMP[UID_SIZE_15693]; // auto-initialized to zero TODO test lol
-
-#define RFID_NIRQ_OUT_PORT GPIOB
-#define RFID_NIRQ_OUT_PIN GPIO_PIN_11
 
 void calculateRawScore(uint8_t* teamRawScore, bool isBlue) {
 
@@ -83,7 +80,9 @@ void RFID_readArray(st25r95_handle *handler) {
 
 				st25r95_service(handler);
 
-				if ( memcmp(handler->uid, UID_ZERO_CMP, sizeof(handler->uid)) ) { // check for non-zero uid, returns 0 if same
+				// only do this if anticollision is disabled
+				// since anticollision handles this already
+				if ( !ANTICOL_15693 && memcmp(handler->uid, UID_ZERO_CMP, sizeof(handler->uid)) ) { // check for non-zero uid, returns 0 if same
 					int bag_number = BeanBag_findIDinArray(handler);
 
 					if (bag_number == -1) continue; // UID not found
@@ -178,6 +177,7 @@ int BeanBag_findIDinArray(st25r95_handle *handler) {
 
 	} else { // valid UID, not already detected
 		BagInfo[bag_number].detected = true;
+		BagInfo[bag_number].ant_channel = handler->ant_channel;
 		return bag_number;
 	}
 

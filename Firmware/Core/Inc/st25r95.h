@@ -12,13 +12,6 @@
 #define __weak   __attribute__((weak))
 #endif
 
-#define RFID_CS_PORT GPIOA
-#define RFID_CS_PIN GPIO_PIN_4
-#define RFID_NIRQ_IN_PORT GPIOC
-#define RFID_NIRQ_IN_PIN GPIO_PIN_4
-#define RFID_NIRQ_OUT_PORT GPIOB
-#define RFID_NIRQ_OUT_PIN GPIO_PIN_11
-
 #define UID_SIZE_15693 8
 #define UID_SIZE_14443A 10
 
@@ -160,8 +153,8 @@ typedef struct {
   st25r95_rate_t rx_speed;
   uint8_t timerw;
   uint8_t ARC;
-  uint8_t uid[64][10]; // list of UIDs
-  uint8_t num_uids;
+  uint8_t uid[10]; // most recently read UID
+  int ant_channel;
   volatile uint8_t irq_flag;
   volatile uint8_t timeout_flag;
   /* BSP Functions */

@@ -58,24 +58,6 @@
 
 #define SDU_NAME "SDU"
 
-#define SEL0_GPIO_Port GPIOC
-#define SEL1_GPIO_Port GPIOC
-#define SEL2_GPIO_Port GPIOB
-#define SEL3_GPIO_Port GPIOB
-#define SEL4_GPIO_Port GPIOC
-#define SEL5_GPIO_Port GPIOC
-#define SEL6_GPIO_Port GPIOB
-#define SEL7_GPIO_Port GPIOB
-
-#define SEL0_Pin GPIO_PIN_2
-#define SEL1_Pin GPIO_PIN_1
-#define SEL2_Pin GPIO_PIN_15
-#define SEL3_Pin GPIO_PIN_14
-#define SEL4_Pin GPIO_PIN_7
-#define SEL5_Pin GPIO_PIN_6
-#define SEL6_Pin GPIO_PIN_13
-#define SEL7_Pin GPIO_PIN_12
-
 #ifndef configASSERT
 	#define configASSERT ( x )     if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); for( ;; ); }
 #endif
@@ -174,6 +156,9 @@ void RFIDTimeoutCallback(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+// UPDATE ALL THESE TO INCLUDE DELAYUNTIL or OSDELAY
+volatile st25r95_handle reader_handler;
+
 /**
  * channel index is 1 indexed, 1-12
  */
@@ -246,11 +231,9 @@ uint8_t select_rfid_channel(uint8_t channel_index) {
 		break;
 	}
 
+	reader_handler.ant_channel = channel_index;
 	return 0;
 }
-
-// UPDATE ALL THESE TO INCLUDE DELAYUNTIL or OSDELAY
-volatile st25r95_handle reader_handler;
 
 void reader_irq_pulse() {
 

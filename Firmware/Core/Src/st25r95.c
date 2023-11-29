@@ -1,18 +1,11 @@
 #include "reader.h"
 #include "st25r95.h"
 
-// Anticollision "switch"
-// 0 = off, 1 = on
-// turning anticollision off can allow you
-// to read the UID of a single tag
-// to record for anticollision purposes
-#define ANTICOL_15693 1
-
 volatile static uint8_t tx_buffer[256];
 volatile static size_t tx_len;
 
-volatile static uint8_t rx_buffer[256];
-volatile static size_t rx_len;
+//volatile static uint8_t rx_buffer[256];
+//volatile static size_t rx_len;
 
 
 void st25r95_spi_tx(st25r95_handle *handler) {
@@ -41,8 +34,8 @@ void st25r95_service(st25r95_handle *handler) {
       else if (handler->protocol == ST25_PROTOCOL_15693
           		  && ANTICOL_15693)
 	  { // searching for multiple tags
-		st25r95_15693_anticolSetup(handler);
-		st25r95_15693_anticolSim(handler);
+		  st25r95_15693_anticolSetup(handler);
+		  st25r95_15693_anticolSim(handler);
 		  HAL_GPIO_WritePin(GPIOB, 1 << 4, 0);
 	  }
       else if (handler->protocol == ST25_PROTOCOL_15693
@@ -204,7 +197,7 @@ st25r95_status_t st25r95_15693(st25r95_handle *handler) {
   tx_buffer[1] = ST25_PS;
   tx_buffer[2] = 2;
   tx_buffer[3] = ST25_PROTOCOL_15693;
-  tx_buffer[4] = handler->tx_speed << 4 | 0 << 3
+  tx_buffer[4] = handler->tx_speed << 4 | 1 << 3
   	  	  	  	  | 0 << 2 | 0 << 1 | 1 << 0;
   tx_len = 5;
 
@@ -223,7 +216,7 @@ st25r95_status_t st25r95_15693_poll(st25r95_handle *handler) {
   tx_buffer[1] = ST25_PS;
   tx_buffer[2] = 2;
   tx_buffer[3] = ST25_PROTOCOL_15693;
-  tx_buffer[4] = handler->tx_speed << 4 | 0 << 3
+  tx_buffer[4] = handler->tx_speed << 4 | 1 << 3
   	  	  	  	  | 0 << 2 | 0 << 1 | 1 << 0;
   tx_len = 5;
 
@@ -350,8 +343,8 @@ uint8_t st25r95_14443A_detect(st25r95_handle *handler) {
       break;
   }
 
-  memset(handler->uid[0], 0, 10);
-  memcpy(handler->uid[0], UID, 10);
+  memset(handler->uid, 0, 10);
+  memcpy(handler->uid, UID, 10);
   return 1;
 }
 
@@ -440,8 +433,8 @@ uint8_t st25r95_15693_inventory1(st25r95_handle *handler)
   uint8_t *res = st25r95_response(handler);
   if (res[0] != ST25_EFrameRecvOK) return 0;
 
-  memset(handler->uid[0], 0, 8);
-  memcpy(handler->uid[0], res+4, 8);
+  memset(handler->uid, 0, 8);
+  memcpy(handler->uid, res+4, 8);
   return 1;
 }
 
@@ -526,8 +519,8 @@ void st25r95_15693_anticolSetup(st25r95_handle *handler)
 		for (int j = 0; j < NUM_TAGS_PER_BAG; j++)
 		{
 			// select and sleep the current tag
-			st25r95_15693_select(handler, BagInfo[i].uid[j]);
-			st25r95_15693_quiet(handler, BagInfo[i].uid[j]);
+			st25r95_15693_select(handler, BagInfo[i].uid + j);
+			st25r95_15693_quiet(handler, BagInfo[i].uid + j);
 		}
 	}
 }
@@ -549,8 +542,9 @@ void st25r95_15693_anticolSim(st25r95_handle *handler)
 			{
 				// record UID in handler
 		        HAL_GPIO_WritePin(GPIOB, 1 << 4, 1);
+		        BeanBag_findIDinArray(handler);
 			}
-			st25r95_15693_quiet(handler, BagInfo[i].uid[j]);
+			st25r95_15693_quiet(handler, BagInfo[i].uid + j);
 		}
 	}
 }
