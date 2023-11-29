@@ -141,7 +141,7 @@ const osSemaphoreAttr_t BLESemaphore_attributes = {
   .name = "BLESemaphore"
 };
 /* USER CODE BEGIN PV */
-BroadcastPacket broadcastPacket = { 0, 0, 0 };
+BroadcastPacket broadcastPacket = { 6, 0, 0 };
 
 char CBU_ID[4] = "CBUx";
 
@@ -800,6 +800,8 @@ void StartBluetoothTask(void *argument)
 	memset(rx_buffer, 0, RX_BUFF_SIZE);
 	char *json_string = "{\"battery\": 10.56, \"team1d\": 0, \"team2d\": 3} \n";
 
+	float batteryPercentage = 0;
+
 	for (;;)
 	 //osDelay(BROADCAST_PERIOD_MS); // temp for commenting out the rest of the task
 	 {
@@ -815,7 +817,14 @@ void StartBluetoothTask(void *argument)
 				// send reply packet
 				//broadcastPacket.redDeltaScore = 2;
 				broadcastPacket.blueDeltaScore = 3;
-				serializeJSON(&broadcastPacket, (char*) tx_buffer);
+
+				// voltage to percentage
+				batteryPercentage = broadcastPacket.batteryVoltage - 3.6;
+				batteryPercentage /= .024;
+				if (batteryPercentage > 100) batteryPercentage = 100;
+				if (batteryPercentage < 0) batteryPercentage = 0;
+
+				serializeJSON(&broadcastPacket, (char*) tx_buffer, (uint32_t)batteryPercentage);
 				HAL_UART_Transmit_DMA(&huart1, (uint8_t*) tx_buffer, TX_BUFF_SIZE);
 
 //				osTimerStop(RFIDTimeoutHandle);

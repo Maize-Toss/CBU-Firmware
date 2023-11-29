@@ -1,0 +1,6 @@
+../Core/Src/reader.c:41:6:calculateRawScore	3
+../Core/Src/reader.c:58:6:RFID_readArray	8
+../Core/Src/reader.c:138:6:BeanBag_setup	1
+../Core/Src/reader.c:144:6:BeanBag_clearDetected	2
+../Core/Src/reader.c:151:6:BeanBag_clearScore	2
+../Core/Src/reader.c:158:5:BeanBag_findIDinArray	8

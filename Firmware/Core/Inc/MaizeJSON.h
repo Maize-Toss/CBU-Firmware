@@ -96,7 +96,7 @@ void deserializeJSON(const char* json_data, struct GameInfo* info) {
  * @param packet Pointer to he JSON data to be seralized.
  * @param data Pointer to the string storing the serialized JSON information.
  */
-void* serializeJSON(BroadcastPacket* data, char* dst ){
+void* serializeJSON(BroadcastPacket* data, char* dst , uint32_t percentage){
 
 	 cJSON* json = cJSON_CreateObject();
 
@@ -105,7 +105,7 @@ void* serializeJSON(BroadcastPacket* data, char* dst ){
 	        return NULL;
 	    }
 
-	    cJSON_AddNumberToObject(json, "battery", data->batteryVoltage); // battery voltage
+	    cJSON_AddNumberToObject(json, "battery", percentage); // battery voltage
 	    cJSON_AddNumberToObject(json, "team1d", data->redDeltaScore);
 	    cJSON_AddNumberToObject(json, "team2d", data->blueDeltaScore);
 

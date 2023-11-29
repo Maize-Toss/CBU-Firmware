@@ -1,5 +1,5 @@
 ../Core/Inc/MaizeJSON.h:43:6:deserializeJSON	48	static
-../Core/Inc/MaizeJSON.h:99:7:serializeJSON	24	static
+../Core/Inc/MaizeJSON.h:99:7:serializeJSON	32	static
 ../Core/Src/main.c:187:9:select_rfid_channel	24	static
 ../Core/Src/main.c:262:6:reader_irq_pulse	8	static
 ../Core/Src/main.c:271:6:reader_nss	16	static
@@ -17,8 +17,8 @@
 ../Core/Src/main.c:648:13:MX_USART2_UART_Init	8	static
 ../Core/Src/main.c:681:13:MX_DMA_Init	16	static
 ../Core/Src/main.c:706:13:MX_GPIO_Init	40	static
-../Core/Src/main.c:788:6:StartBluetoothTask	32	static
-../Core/Src/main.c:839:6:StartRFIDTask	32	static
-../Core/Src/main.c:885:6:StartBatteryTask	40	static
-../Core/Src/main.c:916:6:RFIDTimeoutCallback	16	static
-../Core/Src/main.c:939:6:Error_Handler	4	static,ignoring_inline_asm
+../Core/Src/main.c:788:6:StartBluetoothTask	40	static
+../Core/Src/main.c:848:6:StartRFIDTask	32	static
+../Core/Src/main.c:894:6:StartBatteryTask	40	static
+../Core/Src/main.c:925:6:RFIDTimeoutCallback	16	static
+../Core/Src/main.c:948:6:Error_Handler	4	static,ignoring_inline_asm
