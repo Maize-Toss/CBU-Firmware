@@ -512,14 +512,17 @@ void st25r95_15693_resetToReady(st25r95_handle *handler, uint8_t uid[8])
 
 void st25r95_15693_anticolSetup(st25r95_handle *handler)
 {
-	// for each bag
-	for (int i = 0; i < NUM_BAGS; i++)
+	// for each bag TODO
+	for (int i = 0; i < 1; i++)
 	{
 		// for each tag (on the bag)
 		for (int j = 0; j < NUM_TAGS_PER_BAG; j++)
 		{
 			// select and sleep the current tag
+			vTaskDelay(1);
 			st25r95_15693_select(handler, BagInfo[i].uid + j);
+
+			vTaskDelay(1);
 			st25r95_15693_quiet(handler, BagInfo[i].uid + j);
 		}
 	}
@@ -527,8 +530,8 @@ void st25r95_15693_anticolSetup(st25r95_handle *handler)
 
 void st25r95_15693_anticolSim(st25r95_handle *handler)
 {
-	// for each bag
-	for (int i = 0; i < NUM_BAGS; i++)
+	// for each bag TODO
+	for (int i = 0; i < 1; i++)
 	{
 		// for each tag (on the bag)
 		for (int j = 0; j < NUM_TAGS_PER_BAG; j++)
@@ -537,13 +540,17 @@ void st25r95_15693_anticolSim(st25r95_handle *handler)
 			// try to inventory (detect) it
 			//		if detected, record UID
 			// quiet tag
-			st25r95_15693_select(handler, BagInfo[i].uid[j]);
+			vTaskDelay(1);
+			st25r95_15693_select(handler, BagInfo[i].uid + j);
+			vTaskDelay(1);
 			if (st25r95_15693_inventory1(handler))
 			{
 				// record UID in handler
 		        HAL_GPIO_WritePin(GPIOB, 1 << 4, 1);
 		        BeanBag_findIDinArray(handler);
 			}
+
+			vTaskDelay(1);
 			st25r95_15693_quiet(handler, BagInfo[i].uid + j);
 		}
 	}

@@ -134,6 +134,8 @@ int DMA_RX = 0;
 const RFIDEvent_t readEvent = EVENT_READ;
 const RFIDEvent_t timeoutEvent = EVENT_TIMEOUT;
 
+extern const uint8_t ANT_POINTS_MAP[12];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -848,6 +850,15 @@ void StartRFIDTask(void *argument)
 //	osDelay(RFID_READ_PERIOD_MS); // temp for commenting out the rest of the task
 			{
 		RFID_readArray(&reader_handler);
+
+		if (ANTICOL_15693) {
+			// for each bag
+			for (int i = 0; i < NUM_BAGS; i++) {
+				if (BagInfo[i].ant_channel > 0) {
+					BagStatus[i] = ANT_POINTS_MAP[BagInfo[i].ant_channel - 1];
+				}
+			}
+		}
 
 		calculateRawScore(&redRawScore, false);
 		calculateRawScore(&blueRawScore, true); // true to move BagStatus pointer to the Blue section

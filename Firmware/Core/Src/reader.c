@@ -56,11 +56,11 @@ void RFID_readArray(st25r95_handle *handler) {
 	static int errorCounter = 0;
 
 	BeanBag_clearDetected();
-	//BeanBag_clearScore();
+	BeanBag_clearScore();
 
 	RFIDEvent_t xRFIDEvent;
 
-	for(uint8_t ant_number = 1; ant_number <= 12; ant_number++){
+	for(uint8_t ant_number = 5; ant_number <= 5; ant_number++){
 		if (!ANT_ENABLED[ant_number-1]) continue; // ANT not plugged in, don't waste your time
 
 		select_rfid_channel(ant_number);
@@ -82,15 +82,15 @@ void RFID_readArray(st25r95_handle *handler) {
 
 				// only do this if anticollision is disabled
 				// since anticollision handles this already
-				if ( !ANTICOL_15693 && memcmp(handler->uid, UID_ZERO_CMP, sizeof(handler->uid)) ) { // check for non-zero uid, returns 0 if same
+				if (!ANTICOL_15693 && memcmp(handler->uid, UID_ZERO_CMP, sizeof(handler->uid)) ) { // check for non-zero uid, returns 0 if same
 					int bag_number = BeanBag_findIDinArray(handler);
 
 					if (bag_number == -1) continue; // UID not found
 					else if (bag_number == -2) continue; // Bag already scanned
 
 					BagStatus[bag_number] = ANT_POINTS_MAP[ant_number - 1];
-				}
 
+				}
 			}
 
 			if (handler->timeout_flag) {
@@ -144,6 +144,7 @@ void BeanBag_clearDetected(void) {
 
 	for (int i = 0; i < NUM_BAGS; ++i) {
 		BagInfo[i].detected = false;
+		BagInfo[i].ant_channel = -1;
 	}
 }
 
