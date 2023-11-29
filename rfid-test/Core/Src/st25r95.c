@@ -1,7 +1,16 @@
 #include "st25r95.h"
 
+#define NUMTAGS 3
+#define ANTICOL_15693 1
+
 volatile static uint8_t tx_buffer[256];
 volatile static size_t tx_len;
+
+uint8_t uid_arr[NUMTAGS][8] = {
+	    {0xE2, 0x56, 0xF8, 0xB8, 0x50, 0x01, 0x04, 0xE0},
+	    {0xDB, 0x54, 0xF8, 0xB8, 0x50, 0x01, 0x04, 0xE0},
+		{0xBB, 0x54, 0xF8, 0xB8, 0x50, 0x01, 0x04, 0xE0}
+	};
 
 void st25r95_spi_tx(st25r95_handle *handler) {
   handler->tx(tx_buffer, tx_len);
@@ -26,7 +35,15 @@ void st25r95_service(st25r95_handle *handler) {
         for(volatile i=0;i<10000; ++i);
       }
       else if (handler->protocol == ST25_PROTOCOL_15693
-    		  & st25r95_15693_inventory1(handler)) {
+    		  && ANTICOL_15693)
+      {
+	    st25r95_15693_anticolSetup(handler);
+    	st25r95_15693_anticolSim(handler);
+        handler->callback(handler->uid);
+      }
+      else if (handler->protocol == ST25_PROTOCOL_15693
+    		  && st25r95_15693_inventory1(handler))
+      {
         handler->callback(handler->uid);
         HAL_GPIO_WritePin(GPIOB, 1 << 4, 1);
         for(volatile i=0;i<10000; ++i);
@@ -170,7 +187,7 @@ st25r95_status_t st25r95_15693(st25r95_handle *handler) {
   tx_buffer[1] = ST25_PS;
   tx_buffer[2] = 2;
   tx_buffer[3] = ST25_PROTOCOL_15693;
-  tx_buffer[4] = handler->tx_speed << 4 | 0 << 3
+  tx_buffer[4] = handler->tx_speed << 4 | 1 << 3
   	  	  	  	  | 0 << 2 | 0 << 1 | 1 << 0;
   tx_len = 5;
 
@@ -370,102 +387,121 @@ st25r95_14443A_select(st25r95_handle *handler, uint8_t level, uint8_t *data, uin
 
 uint8_t st25r95_15693_inventory1(st25r95_handle *handler)
 {
-  tx_buffer[0] = ST25_SEND;
-  tx_buffer[1] = ST25_SR;
-  tx_buffer[2] = 0x3; // length of 15693 command frame
-  tx_buffer[3] = 0x26; // flags
-  tx_buffer[4] = 0x01; // command code
-  tx_buffer[5] = 0x00; // non-addressed & no mask
-  // CRC automatically appended by 15693 protocol select
-  tx_len = 6;
-
-  handler->nss(1);
-  st25r95_spi_tx(handler);
-  handler->nss(0);
-
-  uint8_t *res = st25r95_response(handler);
-  if (res[0] != ST25_EFrameRecvOK) return 0;
-
-  memset(handler->uid[0], 0, 8);
-  memcpy(handler->uid[0], res[4], 8);
-  return 1;
-}
-
-void st25r95_15693_inventory16(st25r95_handle *handler, uint8_t mask_len, uint64_t mask_val)
-{
 	tx_buffer[0] = ST25_SEND;
 	tx_buffer[1] = ST25_SR;
 	tx_buffer[2] = 0x3; // length of 15693 command frame
-	tx_buffer[3] = 0b00000110; // flags
+	tx_buffer[3] = 0b00100110; // flags
 	tx_buffer[4] = 0x01; // command code
-	tx_buffer[5] = mask_len; // non-addressed & no mask
-	tx_buffer[6] = mask_val >> 0 & 0xFF;
-	tx_buffer[7] = mask_val >> 8 & 0xFF;
-	tx_buffer[8] = mask_val >> 16 & 0xFF;
-	tx_buffer[9] = mask_val >> 24 & 0xFF;
-	tx_buffer[10] = mask_val >> 32 & 0xFF;
-	tx_buffer[11] = mask_val >> 40 & 0xFF;
-	tx_buffer[12] = mask_val >> 48 & 0xFF;
-	tx_buffer[13] = mask_val >> 56 & 0xFF;
+	tx_buffer[5] = 0x00; // non-addressed & no mask
 	// CRC automatically appended by 15693 protocol select
-	tx_len = 6 + ceil(mask_len / 8);
+	tx_len = 6;
 
 	handler->nss(1);
 	st25r95_spi_tx(handler);
 	handler->nss(0);
 
-	// only tx's, response will be in multiple packets
-	// so it must be parsed separately
+	uint8_t *res = st25r95_response(handler);
+	if (res[0] != ST25_EFrameRecvOK) return 0;
+
+	memset(handler->uid[0], 0, 8);
+	memcpy(handler->uid[0], res + 4, 8);
+	return 1;
 }
 
-uint8_t st25r95_15693_anticollision(st25r95_handle *handler)
+void st25r95_15693_select(st25r95_handle *handler, uint8_t uid[8])
 {
-	uint8_t mask_len = 0;
-	uint64_t mask_val = 0;
-    uint8_t slot_ptr = 0;
-    handler->num_uids = 0;
+	tx_buffer[0] = ST25_SEND;
+	tx_buffer[1] = ST25_SR;
+	tx_buffer[2] = 0x0A; // length of 15693 command frame
+	tx_buffer[3] = 0b00100010; // flags
+	tx_buffer[4] = 0x25; // command code
+	tx_buffer[5] = uid[0]; // UID required
+	tx_buffer[6] = uid[1];
+	tx_buffer[7] = uid[2];
+	tx_buffer[8] = uid[3];
+	tx_buffer[9] = uid[4];
+	tx_buffer[10] = uid[5];
+	tx_buffer[11] = uid[6];
+	tx_buffer[12] = uid[7];
+	tx_len = 13;
 
-    do
-    {
-    	// send inventory16
-    	st25r95_15693_inventory16(handler, mask_len, mask_val);
+	handler->nss(1);
+	st25r95_spi_tx(handler);
+	handler->nss(0);
 
-    	// iterate through slots
-		for (int i = 0; i < 16; i++)
+	uint8_t *res = st25r95_response(handler);
+}
+
+void st25r95_15693_quiet(st25r95_handle *handler, uint8_t uid[8])
+{
+	tx_buffer[0] = ST25_SEND;
+	tx_buffer[1] = ST25_SR;
+	tx_buffer[2] = 0x0A; // length of command frame
+	tx_buffer[3] = 0b00100010; // flags
+	tx_buffer[4] = 0x02; // command code
+	tx_buffer[5] = uid[0]; // UID required
+	tx_buffer[6] = uid[1];
+	tx_buffer[7] = uid[2];
+	tx_buffer[8] = uid[3];
+	tx_buffer[9] = uid[4];
+	tx_buffer[10] = uid[5];
+	tx_buffer[11] = uid[6];
+	tx_buffer[12] = uid[7];
+	tx_len = 13;
+
+	handler->nss(1);
+	st25r95_spi_tx(handler);
+	handler->nss(0);
+
+	uint8_t *res = st25r95_response(handler);
+}
+
+void st25r95_15693_resetToReady(st25r95_handle *handler, uint8_t uid[8])
+{
+	tx_buffer[0] = ST25_SEND;
+	tx_buffer[1] = ST25_SR;
+	tx_buffer[2] = 0x0A; // length of command frame
+	tx_buffer[3] = 0b00100010; // flags
+	tx_buffer[4] = 0x26; // command code
+	tx_buffer[5] = uid[0]; // UID required
+	tx_buffer[6] = uid[1];
+	tx_buffer[7] = uid[2];
+	tx_buffer[8] = uid[3];
+	tx_buffer[9] = uid[4];
+	tx_buffer[10] = uid[5];
+	tx_buffer[11] = uid[6];
+	tx_buffer[12] = uid[7];
+	tx_len = 13;
+
+	handler->nss(1);
+	st25r95_spi_tx(handler);
+	handler->nss(0);
+
+	uint8_t *res = st25r95_response(handler);
+}
+
+void st25r95_15693_anticolSetup(st25r95_handle *handler)
+{
+	for (int i = 0; i < NUMTAGS; i++)
+	{
+		st25r95_15693_select(handler, uid_arr[i]);
+		st25r95_15693_inventory1(handler);
+		st25r95_15693_quiet(handler, uid_arr[i]);
+	}
+}
+
+void st25r95_15693_anticolSim(st25r95_handle *handler)
+{
+	for (int i = 0; i < NUMTAGS; i++)
+	{
+		st25r95_15693_select(handler, uid_arr[i]);
+		if (st25r95_15693_inventory1(handler))
 		{
-			uint8_t *res = st25r95_response(handler);
-
-			if (res[0] == ST25_EFrameWaitTOut) // no tag
-			{
-			  continue;
-			}
-			else if (res[0] == 0) // collision detected
-			{
-				slot_ptr = i;
-			}
-			else if (res[0] == ST25_EFrameRecvOK)
-			// tag found and is not yet in list
-			{
-				// get temp UID from res
-				uint8_t temp_uid[10];
-				memcpy(temp_uid, res[4], 10);
-				if (!st25r95_find_UID(temp_uid, handler->uid))
-				{
-					// copy temp UID to handler
-					memcpy(handler->uid[handler->num_uids], temp_uid, 10);
-					handler->num_uids++;
-				}
-			}
+			// record UID in handler
+	        HAL_GPIO_WritePin(GPIOB, 1 << 4, 1);
 		}
-
-		if (slot_ptr != 0) // collision detected
-		{
-			mask_len += 4;
-			mask_val += slot_ptr;
-		}
-    } while (slot_ptr != 0 && mask_len <= 64);
-
-	return 1;
+		st25r95_15693_quiet(handler, uid_arr[i]);
+	}
 }
 
 uint8_t st25r95_find_UID(uint8_t to_find[10], uint8_t uids[64][10])

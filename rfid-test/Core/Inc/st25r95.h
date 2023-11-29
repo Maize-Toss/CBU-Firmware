@@ -192,9 +192,13 @@ uint8_t st25r95_14443A_detect(st25r95_handle *);
 
 uint8_t st25r95_15693_inventory1(st25r95_handle *);
 
-void st25r95_15693_inventory16(st25r95_handle *, uint8_t, uint64_t);
+void st25r95_15693_select(st25r95_handle *, uint8_t [8]);
 
-uint8_t st25r95_15693_anticollision(st25r95_handle *handler);
+void st25r95_15693_quiet(st25r95_handle *, uint8_t [8]);
+
+void st25r95_15693_resetToReady(st25r95_handle *, uint8_t [8]);
+
+void st25r95_15693_anticolSim(st25r95_handle *);
 
 uint8_t st25r95_find_UID(uint8_t [10], uint8_t [64][10]);
 
