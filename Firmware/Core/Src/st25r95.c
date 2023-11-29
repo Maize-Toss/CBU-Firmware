@@ -1,11 +1,10 @@
+#include "reader.h"
 #include "st25r95.h"
-#include "stm32l4xx_hal.h"
+
+#define ANTICOL_15693 0
 
 volatile static uint8_t tx_buffer[256];
 volatile static size_t tx_len;
-
-#define RFID_NIRQ_OUT_PORT GPIOB
-#define RFID_NIRQ_OUT_PIN GPIO_PIN_11
 
 void st25r95_spi_tx(st25r95_handle *handler) {
   handler->tx(tx_buffer, tx_len);
@@ -23,23 +22,30 @@ void st25r95_service(st25r95_handle *handler) {
     handler->irq_flag = 0;
     if (handler->state == ST25_STATE_IDLE) {
       st25r95_init(handler);
-      vTaskDelay(1);
       if (handler->protocol == ST25_PROTOCOL_14443A
-    		  && st25r95_14443A_detect(handler)) {
+    		  & st25r95_14443A_detect(handler)) {
         handler->callback(handler->uid);
         HAL_GPIO_WritePin(GPIOB, 1 << 4, 1);
-        for(volatile int i=0;i<10000; ++i);
+        for(volatile i=0;i<10000; ++i);
       }
       else if (handler->protocol == ST25_PROTOCOL_15693
-    		  && st25r95_15693_inventory1(handler)) {
+    		  && ANTICOL_15693)
+      { // searching for multiple tags
+	    st25r95_15693_anticolSetup(handler);
+    	st25r95_15693_anticolSim(handler);
+        HAL_GPIO_WritePin(GPIOB, 1 << 4, 0);
+      }
+      else if (handler->protocol == ST25_PROTOCOL_15693
+    		  && st25r95_15693_inventory1(handler))
+      { // reading 1 tag at a time
         handler->callback(handler->uid);
         HAL_GPIO_WritePin(GPIOB, 1 << 4, 1);
+        for(volatile i=0;i<10000; ++i);
       } else {
-    	//HAL_GPIO_WritePin(GPIOB, 1 << 4, 0);
+    	HAL_GPIO_WritePin(GPIOB, 1 << 4, 0);
       }
       st25r95_idle(handler);
     }
-
   }
 }
 
@@ -49,43 +55,53 @@ uint8_t *st25r95_response(st25r95_handle *handler) {
   static uint8_t rx_data[256];
   handler->nss(1);
   st25r95_spi_byte(handler, ST25_READ);
-  handler->rx(rx_data, 1);
+  handler->rx(rx_data, 1, HAL_MAX_DELAY);
   if (rx_data[0] == ST25_ECHO)
   {
     handler->nss(0);
     return rx_data;
   }
-  handler->rx(rx_data + 1, 1);
-  handler->rx(rx_data + 2, *(rx_data + 1));
+  handler->rx(rx_data + 1, 1, HAL_MAX_DELAY);
+  handler->rx(rx_data + 2, *(rx_data + 1), HAL_MAX_DELAY);
   handler->nss(0);
   return rx_data;
 }
 
-uint8_t *st25r95_response_poll(st25r95_handle *handler) {
-	volatile int i;
-	while (HAL_GPIO_ReadPin(RFID_NIRQ_OUT_PORT, RFID_NIRQ_OUT_PIN) == 1) {
-		++i;
-		++i;
-	}
+uint8_t *st25r95_response_with_reset(st25r95_handle *handler) {
+  while (handler->irq_flag == 0);
   handler->irq_flag = 0;
   static uint8_t rx_data[256];
   handler->nss(1);
   st25r95_spi_byte(handler, ST25_READ);
-  handler->rx(rx_data, 1);
+  int ret = handler->rx(rx_data, 1, 1000);
+  if (ret == HAL_TIMEOUT) {
+	  // Stuck waiting for response, reset system
+	  NVIC_SystemReset();
+  }
+
   if (rx_data[0] == ST25_ECHO)
   {
     handler->nss(0);
     return rx_data;
   }
-  handler->rx(rx_data + 1, 1);
-  handler->rx(rx_data + 2, *(rx_data + 1));
+
+  ret = handler->rx(rx_data + 1, 1, 1000);
+  if (ret == HAL_TIMEOUT) {
+  	  // Stuck waiting for response, reset system
+  	  NVIC_SystemReset();
+  }
+
+  ret = handler->rx(rx_data + 2, *(rx_data + 1), 1000);
+  if (ret == HAL_TIMEOUT) {
+  	  // Stuck waiting for response, reset system
+  	  NVIC_SystemReset();
+  }
+
   handler->nss(0);
   return rx_data;
 }
 
 void st25r95_init(st25r95_handle *handler) {
-	handler->state = ST25_STATE_INIT;
-
   st25r95_reset(handler);
   handler->irq_pulse();
   handler->state = ST25_STATE_NORMAL;
@@ -102,29 +118,6 @@ void st25r95_init(st25r95_handle *handler) {
       st25r95_off(handler);
       break;
   }
-}
-
-void st25r95_init_poll(st25r95_handle *handler) {
-
-	handler->state = ST25_STATE_INIT;
-
-  st25r95_reset(handler);
-  handler->irq_pulse();
-  handler->state = ST25_STATE_NORMAL;
-  switch (handler->protocol) {
-    case ST25_PROTOCOL_14443A:
-      st25r95_14443A(handler);
-      st25r95_write_timerw(handler, handler->timerw);
-      st25r95_write_ARC(handler, 1, handler->ARC);
-      break;
-    case ST25_PROTOCOL_15693:
-      st25r95_15693_poll(handler);
-	  break;
-    default:
-      st25r95_off(handler);
-      break;
-  }
-
 }
 
 void st25r95_reset(st25r95_handle *handler) {
@@ -188,7 +181,7 @@ st25r95_status_t st25r95_15693(st25r95_handle *handler) {
   tx_buffer[1] = ST25_PS;
   tx_buffer[2] = 2;
   tx_buffer[3] = ST25_PROTOCOL_15693;
-  tx_buffer[4] = handler->tx_speed << 4 | 0 << 3
+  tx_buffer[4] = handler->tx_speed << 4 | 1 << 3
   	  	  	  	  | 0 << 2 | 0 << 1 | 1 << 0;
   tx_len = 5;
 
@@ -198,26 +191,7 @@ st25r95_status_t st25r95_15693(st25r95_handle *handler) {
 
   handler->protocol = ST25_PROTOCOL_15693;
 
-  uint8_t *res = st25r95_response(handler);
-  return res[0];
-}
-
-st25r95_status_t st25r95_15693_poll(st25r95_handle *handler) {
-  tx_buffer[0] = ST25_SEND;
-  tx_buffer[1] = ST25_PS;
-  tx_buffer[2] = 2;
-  tx_buffer[3] = ST25_PROTOCOL_15693;
-  tx_buffer[4] = handler->tx_speed << 4 | 0 << 3
-  	  	  	  	  | 0 << 2 | 0 << 1 | 1 << 0;
-  tx_len = 5;
-
-  handler->nss(1);
-  st25r95_spi_tx(handler);
-  handler->nss(0);
-
-  handler->protocol = ST25_PROTOCOL_15693;
-
-  uint8_t *res = st25r95_response_poll(handler);
+  uint8_t *res = st25r95_response_with_reset(handler);
   return res[0];
 }
 
@@ -334,8 +308,8 @@ uint8_t st25r95_14443A_detect(st25r95_handle *handler) {
       break;
   }
 
-  memset(handler->uid, 0, 10);
-  memcpy(handler->uid, UID, 10);
+  memset(handler->uid[0], 0, 10);
+  memcpy(handler->uid[0], UID, 10);
   return 1;
 }
 
@@ -407,55 +381,138 @@ st25r95_14443A_select(st25r95_handle *handler, uint8_t level, uint8_t *data, uin
 
 uint8_t st25r95_15693_inventory1(st25r95_handle *handler)
 {
-	  handler->state = ST25_STATE_INIT;
+	tx_buffer[0] = ST25_SEND;
+	tx_buffer[1] = ST25_SR;
+	tx_buffer[2] = 0x3; // length of 15693 command frame
+	tx_buffer[3] = 0b00100110; // flags
+	tx_buffer[4] = 0x01; // command code
+	tx_buffer[5] = 0x00; // non-addressed & no mask
+	// CRC automatically appended by 15693 protocol select
+	tx_len = 6;
 
-  tx_buffer[0] = ST25_SEND;
-  tx_buffer[1] = ST25_SR;
-  tx_buffer[2] = 0x3; // length of 15693 command frame
-  tx_buffer[3] = 0x26; // flags
-  tx_buffer[4] = 0x01; // command code
-  tx_buffer[5] = 0x00; // non-addressed & no mask
-  // CRC automatically appended by 15693 protocol select
-  tx_len = 6;
+	handler->nss(1);
+	st25r95_spi_tx(handler);
+	handler->nss(0);
 
-  handler->nss(1);
-  st25r95_spi_tx(handler);
-  handler->nss(0);
+	uint8_t *res = st25r95_response(handler);
+	if (res[0] != ST25_EFrameRecvOK) return 0;
 
-  uint8_t *res = st25r95_response(handler);
-  if (res[0] != ST25_EFrameRecvOK) return 0;
-
-  memset(handler->uid, 0, 8);
-  memcpy(handler->uid, res+4, 8);
-  return 1;
+	memset(handler->uid[0], 0, 8);
+	memcpy(handler->uid[0], res + 4, 8);
+	return 1;
 }
 
-uint8_t st25r95_15693_inventory16(st25r95_handle *handler)
+void st25r95_15693_select(st25r95_handle *handler, uint8_t uid[8])
 {
-  tx_buffer[0] = ST25_SEND;
-  tx_buffer[1] = ST25_SR;
-  tx_buffer[2] = 0x3; // length of 15693 command frame
-  tx_buffer[3] = 0b00000110; // flags
-  tx_buffer[4] = 0x01; // command code
-  tx_buffer[5] = 0x00; // non-addressed & no mask
-  // CRC automatically appended by 15693 protocol select
-  tx_len = 6;
+	tx_buffer[0] = ST25_SEND;
+	tx_buffer[1] = ST25_SR;
+	tx_buffer[2] = 0x0A; // length of 15693 command frame
+	tx_buffer[3] = 0b00100010; // flags
+	tx_buffer[4] = 0x25; // command code
+	tx_buffer[5] = uid[0]; // UID required
+	tx_buffer[6] = uid[1];
+	tx_buffer[7] = uid[2];
+	tx_buffer[8] = uid[3];
+	tx_buffer[9] = uid[4];
+	tx_buffer[10] = uid[5];
+	tx_buffer[11] = uid[6];
+	tx_buffer[12] = uid[7];
+	tx_len = 13;
 
-  handler->nss(1);
-  st25r95_spi_tx(handler);
-  handler->nss(0);
+	handler->nss(1);
+	st25r95_spi_tx(handler);
+	handler->nss(0);
 
-  uint8_t *res = st25r95_response(handler);
-  if (res[0] != ST25_EFrameRecvOK) return 0;
+	uint8_t *res = st25r95_response(handler);
+}
 
-  memset(handler->uid, 0, 8);
-  memcpy(handler->uid, res+4, 8);
-  return 1;
+void st25r95_15693_quiet(st25r95_handle *handler, uint8_t uid[8])
+{
+	tx_buffer[0] = ST25_SEND;
+	tx_buffer[1] = ST25_SR;
+	tx_buffer[2] = 0x0A; // length of command frame
+	tx_buffer[3] = 0b00100010; // flags
+	tx_buffer[4] = 0x02; // command code
+	tx_buffer[5] = uid[0]; // UID required
+	tx_buffer[6] = uid[1];
+	tx_buffer[7] = uid[2];
+	tx_buffer[8] = uid[3];
+	tx_buffer[9] = uid[4];
+	tx_buffer[10] = uid[5];
+	tx_buffer[11] = uid[6];
+	tx_buffer[12] = uid[7];
+	tx_len = 13;
+
+	handler->nss(1);
+	st25r95_spi_tx(handler);
+	handler->nss(0);
+
+	uint8_t *res = st25r95_response(handler);
+}
+
+void st25r95_15693_resetToReady(st25r95_handle *handler, uint8_t uid[8])
+{
+	tx_buffer[0] = ST25_SEND;
+	tx_buffer[1] = ST25_SR;
+	tx_buffer[2] = 0x0A; // length of command frame
+	tx_buffer[3] = 0b00100010; // flags
+	tx_buffer[4] = 0x26; // command code
+	tx_buffer[5] = uid[0]; // UID required
+	tx_buffer[6] = uid[1];
+	tx_buffer[7] = uid[2];
+	tx_buffer[8] = uid[3];
+	tx_buffer[9] = uid[4];
+	tx_buffer[10] = uid[5];
+	tx_buffer[11] = uid[6];
+	tx_buffer[12] = uid[7];
+	tx_len = 13;
+
+	handler->nss(1);
+	st25r95_spi_tx(handler);
+	handler->nss(0);
+
+	uint8_t *res = st25r95_response(handler);
+}
+
+void st25r95_15693_anticolSetup(st25r95_handle *handler)
+{
+	// for each bag
+	for (int i = 0; i < NUM_BAGS; i++)
+	{
+		// for each tag (on the bag)
+		for (int j = 0; j < NUM_TAGS_PER_BAG; j++)
+		{
+			// select and sleep the current tag
+			st25r95_15693_select(handler, BagInfo[i].uid[j]);
+			st25r95_15693_quiet(handler, BagInfo[i].uid[j]);
+		}
+	}
+}
+
+void st25r95_15693_anticolSim(st25r95_handle *handler)
+{
+	// for each bag
+	for (int i = 0; i < NUM_BAGS; i++)
+	{
+		// for each tag (on the bag)
+		for (int j = 0; j < NUM_TAGS_PER_BAG; j++)
+		{
+			// select current tag
+			// try to inventory (detect) it
+			//		if detected, record UID
+			// quiet tag
+			st25r95_15693_select(handler, BagInfo[i].uid[j]);
+			if (st25r95_15693_inventory1(handler))
+			{
+				// record UID in handler
+		        HAL_GPIO_WritePin(GPIOB, 1 << 4, 1);
+			}
+			st25r95_15693_quiet(handler, BagInfo[i].uid[j]);
+		}
+	}
 }
 
 void st25r95_idle(st25r95_handle *handler) {
-	  handler->state = ST25_STATE_IDLE;
-
   tx_buffer[0] = ST25_SEND;
   tx_buffer[1] = ST25_IDLE;
   tx_buffer[2] = 0x0E;
@@ -479,6 +536,7 @@ void st25r95_idle(st25r95_handle *handler) {
   st25r95_spi_tx(handler);
   handler->nss(0);
 
+  handler->state = ST25_STATE_IDLE;
 }
 
 void st25r95_calibrate(st25r95_handle *handler) {

@@ -16,6 +16,7 @@
 #include "cmsis_os.h"
 
 #define NUM_BAGS 8
+#define NUM_TAGS_PER_BAG 4
 
 #define SEL0_GPIO_Port GPIOC
 #define SEL1_GPIO_Port GPIOC
@@ -55,10 +56,11 @@ typedef struct RFID_interface
 } RFID_interface;
 
 typedef struct BeanBag_interface {
-	uint64_t uid1;
-	uint64_t uid2;
-	uint64_t uid3;
-	uint64_t uid4;
+//	uint64_t uid1;
+//	uint64_t uid2;
+//	uint64_t uid3;
+//	uint64_t uid4;
+	uint64_t uid[NUM_TAGS_PER_BAG];
 
 	bool detected;
 } BeanBag_interface;
