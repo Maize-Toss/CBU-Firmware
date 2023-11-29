@@ -816,7 +816,7 @@ void StartBluetoothTask(void *argument)
 				deserializeJSON((char*) rx_buffer, &gameInfo);
 				// send reply packet
 				//broadcastPacket.redDeltaScore = 2;
-				broadcastPacket.blueDeltaScore = 3;
+				//broadcastPacket.blueDeltaScore = 3;
 
 				// voltage to percentage
 				batteryPercentage = broadcastPacket.batteryVoltage - 3.6;

@@ -426,7 +426,7 @@ uint8_t st25r95_15693_inventory1(st25r95_handle *handler)
   if (res[0] != ST25_EFrameRecvOK) return 0;
 
   memset(handler->uid, 0, 8);
-  memcpy(handler->uid, res[4], 8);
+  memcpy(handler->uid, res+4, 8);
   return 1;
 }
 
@@ -449,7 +449,7 @@ uint8_t st25r95_15693_inventory16(st25r95_handle *handler)
   if (res[0] != ST25_EFrameRecvOK) return 0;
 
   memset(handler->uid, 0, 8);
-  memcpy(handler->uid, res[4], 8);
+  memcpy(handler->uid, res+4, 8);
   return 1;
 }
 
