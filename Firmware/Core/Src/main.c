@@ -271,20 +271,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin) {
 
 	if (pin == RFID_NIRQ_OUT_PIN) {
 		reader_handler.irq_flag = 1;
-
-//		if (reader_handler.state == ST25_STATE_IDLE) { // discard init state events
-//			BaseType_t ret = xQueueSendFromISR(xRFIDEventQueueHandle, &readEvent, &xHigherPriorityTaskWoken);
-//			if (ret != pdTRUE) {
-//				errorCounter++;
-//			}
-//
-//			portYIELD_FROM_ISR (xHigherPriorityTaskWoken);
-//		}
 	}
 }
 
 void st25_card_callback(uint8_t *uid) {
-	//vTaskDelay(xTaskGetTickCount() + pdMS_TO_TICKS(uid[0])); // delay uid[0]
 	;
 }
 
@@ -372,7 +362,6 @@ int main(void)
   BLESemaphoreHandle = osSemaphoreNew(1, 1, &BLESemaphore_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-	//osSemaphoreAcquire(BLESemaphoreHandle, 0);
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* Create the timer(s) */
@@ -784,32 +773,23 @@ void StartBluetoothTask(void *argument)
 	 //osDelay(BROADCAST_PERIOD_MS); // temp for commenting out the rest of the task
 	 {
 		if (DMA_RX != 0) {
-			//vPortEnterCritical();
 			DMA_RX = 0;
 
-			//ret = HAL_UART_Receive(&huart1, rx_buffer, RX_BUFF_SIZE, 600); // Sending in normal mode
+			// deserialize packet
+			deserializeJSON((char*) rx_buffer, &gameInfo);
+			// send reply packet
+			//broadcastPacket.redDeltaScore = 2;
+			//broadcastPacket.blueDeltaScore = 3;
 
-			//if (ret == HAL_OK) {
-				// deserialize packet
-				deserializeJSON((char*) rx_buffer, &gameInfo);
-				// send reply packet
-				//broadcastPacket.redDeltaScore = 2;
-				//broadcastPacket.blueDeltaScore = 3;
+			// voltage to percentage
+			batteryPercentage = broadcastPacket.batteryVoltage - 3.6;
+			batteryPercentage /= .024;
+			if (batteryPercentage > 100) batteryPercentage = 100;
+			if (batteryPercentage < 0) batteryPercentage = 0;
 
-				// voltage to percentage
-				batteryPercentage = broadcastPacket.batteryVoltage - 3.6;
-				batteryPercentage /= .024;
-				if (batteryPercentage > 100) batteryPercentage = 100;
-				if (batteryPercentage < 0) batteryPercentage = 0;
+			serializeJSON(&broadcastPacket, (char*) tx_buffer, (uint32_t)batteryPercentage);
+			HAL_UART_Transmit_DMA(&huart1, (uint8_t*) tx_buffer, TX_BUFF_SIZE);
 
-				serializeJSON(&broadcastPacket, (char*) tx_buffer, (uint32_t)batteryPercentage);
-				HAL_UART_Transmit_DMA(&huart1, (uint8_t*) tx_buffer, TX_BUFF_SIZE);
-
-//				osTimerStop(RFIDTimeoutHandle);
-//				osTimerStart(RFIDTimeoutHandle, pdMS_TO_TICKS(TIMER_PERIOD_MS));
-
-			//vPortExitCritical();
-			//}
 		}
 		vTaskDelayUntil(&xLastWakeTime, period);
 	}
@@ -839,8 +819,6 @@ void StartRFIDTask(void *argument)
 
 	uint8_t tx_buf[2];
 
-	//xQueueReset(xRFIDEventQueueHandle);
-
 	st25r95_idle((st25r95_handle *)&reader_handler);
 
 	osTimerStart(RFIDTimeoutHandle, pdMS_TO_TICKS(TIMER_PERIOD_MS));
@@ -866,7 +844,6 @@ void StartRFIDTask(void *argument)
 		broadcastPacket.redDeltaScore = redRawScore;
 		broadcastPacket.blueDeltaScore = blueRawScore;
 
-//		vTaskDelayUntil(&xLastWakeTime, period);
 	}
   /* USER CODE END StartRFIDTask */
 }
@@ -912,17 +889,6 @@ void StartBatteryTask(void *argument)
 void RFIDTimeoutCallback(void *argument)
 {
   /* USER CODE BEGIN RFIDTimeoutCallback */
-//	static int errorCounter = 0;
-//
-//	/* We have not woken a task at the start of the ISR. */
-//	xHigherPriorityTaskWoken = pdFALSE;
-//
-//	BaseType_t ret = xQueueSendFromISR(xRFIDEventQueueHandle, &timeoutEvent, &xHigherPriorityTaskWoken);
-//	if (ret != pdTRUE) {
-//		errorCounter++;
-//	}
-//
-//	portYIELD_FROM_ISR (xHigherPriorityTaskWoken);
 
 	reader_handler.timeout_flag = 1;
   /* USER CODE END RFIDTimeoutCallback */

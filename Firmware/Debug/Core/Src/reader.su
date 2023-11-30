@@ -1,6 +1,6 @@
-../Core/Src/reader.c:38:6:calculateRawScore	24	static
-../Core/Src/reader.c:55:6:RFID_readArray	24	static
-../Core/Src/reader.c:137:6:BeanBag_setup	8	static
-../Core/Src/reader.c:143:6:BeanBag_clearDetected	16	static
-../Core/Src/reader.c:151:6:BeanBag_clearScore	16	static
-../Core/Src/reader.c:158:5:BeanBag_findIDinArray	32	static
+../Core/Src/reader.c:37:6:calculateRawScore	24	static
+../Core/Src/reader.c:54:6:RFID_readArray	24	static
+../Core/Src/reader.c:106:6:BeanBag_setup	8	static
+../Core/Src/reader.c:112:6:BeanBag_clearDetected	16	static
+../Core/Src/reader.c:120:6:BeanBag_clearScore	16	static
+../Core/Src/reader.c:127:5:BeanBag_findIDinArray	32	static

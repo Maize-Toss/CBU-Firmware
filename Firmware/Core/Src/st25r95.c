@@ -4,6 +4,8 @@
 volatile static uint8_t tx_buffer[256];
 volatile static size_t tx_len;
 
+uint8_t skip_uids[NUM_BAGS * NUM_TAGS_PER_BAG] = {0};
+
 //volatile static uint8_t rx_buffer[256];
 //volatile static size_t rx_len;
 
@@ -20,9 +22,9 @@ void st25r95_spi_byte(st25r95_handle *handler, uint8_t data) {
 }
 
 void st25r95_service(st25r95_handle *handler) {
-  if (handler->irq_flag == 1) {
+  //if (handler->irq_flag == 1) {
     handler->irq_flag = 0;
-    if (handler->state == ST25_STATE_IDLE) {
+//    if (handler->state == ST25_STATE_IDLE) {
       st25r95_init(handler);
       vTaskDelay(1);
       if (handler->protocol == ST25_PROTOCOL_14443A
@@ -45,10 +47,10 @@ void st25r95_service(st25r95_handle *handler) {
       } else {
     	//HAL_GPIO_WritePin(GPIOB, 1 << 4, 0);
       }
-      st25r95_idle(handler);
-    }
+      //st25r95_idle(handler);
+ //   }
 
-  }
+ // }
 }
 
 uint8_t *st25r95_response(st25r95_handle *handler) {
@@ -438,7 +440,7 @@ uint8_t st25r95_15693_inventory1(st25r95_handle *handler)
   return 1;
 }
 
-void st25r95_15693_select(st25r95_handle *handler, uint8_t uid[8])
+uint8_t st25r95_15693_select(st25r95_handle *handler, uint8_t uid[8])
 {
 	tx_buffer[0] = ST25_SEND;
 	tx_buffer[1] = ST25_SR;
@@ -460,6 +462,8 @@ void st25r95_15693_select(st25r95_handle *handler, uint8_t uid[8])
 	handler->nss(0);
 
 	uint8_t *res = st25r95_response(handler);
+
+	return *res;
 }
 
 void st25r95_15693_quiet(st25r95_handle *handler, uint8_t uid[8])
@@ -512,15 +516,24 @@ void st25r95_15693_resetToReady(st25r95_handle *handler, uint8_t uid[8])
 
 void st25r95_15693_anticolSetup(st25r95_handle *handler)
 {
-	// for each bag TODO
-	for (int i = 0; i < 1; i++)
+	uint8_t rc = 0;
+
+	memset(skip_uids, 0, NUM_BAGS * NUM_TAGS_PER_BAG);
+
+	// for each bag
+	for (int i = 0; i < NUM_BAGS; i++)
 	{
 		// for each tag (on the bag)
 		for (int j = 0; j < NUM_TAGS_PER_BAG; j++)
 		{
 			// select and sleep the current tag
 			vTaskDelay(1);
-			st25r95_15693_select(handler, BagInfo[i].uid + j);
+			rc = st25r95_15693_select(handler, BagInfo[i].uid + j);
+
+			if (rc != 0x80) {
+				skip_uids[i * NUM_TAGS_PER_BAG + j] = 1;
+				continue;
+			}
 
 			vTaskDelay(1);
 			st25r95_15693_quiet(handler, BagInfo[i].uid + j);
@@ -530,18 +543,26 @@ void st25r95_15693_anticolSetup(st25r95_handle *handler)
 
 void st25r95_15693_anticolSim(st25r95_handle *handler)
 {
-	// for each bag TODO
-	for (int i = 0; i < 1; i++)
+	uint8_t rc = 0;
+
+	// for each bag
+	for (int i = 0; i < NUM_BAGS; i++)
 	{
+		if (BagInfo[i].detected) continue;
+
 		// for each tag (on the bag)
 		for (int j = 0; j < NUM_TAGS_PER_BAG; j++)
 		{
+			if (skip_uids[i * NUM_TAGS_PER_BAG + j]) continue;
 			// select current tag
 			// try to inventory (detect) it
 			//		if detected, record UID
 			// quiet tag
 			vTaskDelay(1);
-			st25r95_15693_select(handler, BagInfo[i].uid + j);
+			rc = st25r95_15693_select(handler, BagInfo[i].uid + j);
+
+			if (rc != 0x80) continue;
+
 			vTaskDelay(1);
 			if (st25r95_15693_inventory1(handler))
 			{

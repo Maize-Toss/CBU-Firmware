@@ -201,7 +201,7 @@ uint8_t st25r95_14443A_detect(st25r95_handle *);
 
 uint8_t st25r95_15693_inventory1(st25r95_handle *);
 
-void st25r95_15693_select(st25r95_handle *, uint8_t [8]);
+uint8_t st25r95_15693_select(st25r95_handle *, uint8_t [8]);
 
 void st25r95_15693_quiet(st25r95_handle *, uint8_t [8]);
 
