@@ -25,6 +25,6 @@
 ../Core/Src/st25r95.c:469:6:st25r95_15693_quiet	24	static
 ../Core/Src/st25r95.c:493:6:st25r95_15693_resetToReady	24	static
 ../Core/Src/st25r95.c:517:6:st25r95_15693_anticolSetup	32	static
-../Core/Src/st25r95.c:548:6:st25r95_15693_anticolSim	32	static
-../Core/Src/st25r95.c:586:6:st25r95_idle	16	static
-../Core/Src/st25r95.c:613:6:st25r95_calibrate	32	static
+../Core/Src/st25r95.c:550:6:st25r95_15693_anticolSim	32	static
+../Core/Src/st25r95.c:588:6:st25r95_idle	16	static
+../Core/Src/st25r95.c:615:6:st25r95_calibrate	32	static
