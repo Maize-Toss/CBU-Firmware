@@ -37,7 +37,7 @@ void st25r95_service(st25r95_handle *handler) {
           		  && ANTICOL_15693)
 	  { // searching for multiple tags
 		  st25r95_15693_anticolSetup(handler);
-		  st25r95_15693_anticolSim(handler);
+//		  st25r95_15693_anticolSim(handler);
 		  HAL_GPIO_WritePin(GPIOB, 1 << 4, 0);
 	  }
       else if (handler->protocol == ST25_PROTOCOL_15693
@@ -523,6 +523,7 @@ void st25r95_15693_anticolSetup(st25r95_handle *handler)
 	// for each bag
 	for (int i = 0; i < NUM_BAGS; i++)
 	{
+		if (BagInfo[i].detected) continue;
 		// for each tag (on the bag)
 		for (int j = 0; j < NUM_TAGS_PER_BAG; j++)
 		{
@@ -530,9 +531,14 @@ void st25r95_15693_anticolSetup(st25r95_handle *handler)
 			vTaskDelay(1);
 			rc = st25r95_15693_select(handler, BagInfo[i].uid + j);
 
-			if (rc != 0x80) {
-				skip_uids[i * NUM_TAGS_PER_BAG + j] = 1;
+			if (rc != 0x80) { // UID not found
+				skip_uids[i * NUM_TAGS_PER_BAG + j] = 1; // skip uid for rest of service
 				continue;
+			} else { // UID Found
+				// record UID in handler
+				HAL_GPIO_WritePin(GPIOB, 1 << 4, 1);
+				handler->uid[0] = BagInfo[i].uid[j];
+				BeanBag_findIDinArray(handler);
 			}
 
 			vTaskDelay(1);
